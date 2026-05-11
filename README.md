@@ -1,4 +1,70 @@
-### 2) Создание виртуального окружения
+# 🌸 Цветашки Крым
+
+> Сезонные явления Крыма — веб-приложение и Telegram бот
+
+![Python](https://img.shields.io/badge/Python-3.11+-blue?style=for-the-badge&logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge&logo=fastapi)
+![Telegram](https://img.shields.io/badge/Telegram-Bot-26A5E4?style=for-the-badge&logo=telegram)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker)
+
+---
+
+## 📖 О проекте
+
+Веб-приложение и Telegram-бот для отслеживания сезонных явлений в Крыму.
+
+### Что можно отслеживать
+
+| Категория | Примеры |
+|---|---|
+| 🌺 Цветение | лаванда, сакура, маки, пионы, глициния, подснежники |
+| 🌅 Визуальные эффекты | закаты, туманы, гало |
+| 🍇 Урожай | черешня, виноград |
+| 🐬 Животные | дельфины |
+| 🎪 Мероприятия | фестивали, ярмарки |
+
+---
+
+## ⚙️ Переменные окружения (.env)
+
+Создайте файл `.env` в корне проекта:
+
+```env
+# Обязательные
+SESSION_SECRET=ваша-случайная-строка-из-32-символов
+ADMIN_PASSWORD=ваш-пароль-для-админки
+DATABASE_URL=sqlite:///./data/tsvetashki.db
+
+# Опциональные
+OPENWEATHER_API_KEY=
+TELEGRAM_BOT_TOKEN=
+BASE_URL=http://localhost:8000
+```
+
+---
+
+## 🔐 Генерация SESSION_SECRET
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+---
+
+## 🚀 Запуск
+
+### Способ 1 — локальный запуск
+
+#### 1) Клонирование репозитория
+
+```bash
+git clone https://github.com/videmyy/tsvetashki-krym.git
+cd tsvetashki-krym
+```
+
+---
+
+#### 2) Создание виртуального окружения
 
 ```bash
 python -m venv venv
@@ -6,7 +72,7 @@ python -m venv venv
 
 ---
 
-### 3) Активация окружения
+#### 3) Активация окружения
 
 **Windows**
 
@@ -14,7 +80,7 @@ python -m venv venv
 venv\Scripts\activate
 ```
 
-**Linux / macOS**
+**Linux / Mac**
 
 ```bash
 source venv/bin/activate
@@ -22,7 +88,7 @@ source venv/bin/activate
 
 ---
 
-### 4) Установка зависимостей
+#### 4) Установка зависимостей
 
 ```bash
 pip install -r requirements.txt
@@ -30,7 +96,7 @@ pip install -r requirements.txt
 
 ---
 
-### 5) Создание `.env`
+#### 5) Создание `.env`
 
 **Windows**
 
@@ -38,7 +104,7 @@ pip install -r requirements.txt
 copy .env.example .env
 ```
 
-**Linux / macOS**
+**Linux / Mac**
 
 ```bash
 cp .env.example .env
@@ -46,7 +112,7 @@ cp .env.example .env
 
 ---
 
-### 6) Запуск приложения
+#### 6) Запуск приложения
 
 ```bash
 uvicorn main:app --reload --port 8000
@@ -60,21 +126,21 @@ http://localhost:8000
 
 ---
 
-## 🐳 Docker
+### Способ 2 — запуск через Docker
 
-### Запуск backend
+#### Запуск backend
 
 ```bash
 docker compose up backend
 ```
 
-### Запуск Telegram-бота
+#### Запуск Telegram-бота
 
 ```bash
 docker compose --profile bot up
 ```
 
-### Остановка контейнеров
+#### Остановка контейнеров
 
 ```bash
 docker compose down
@@ -83,6 +149,8 @@ docker compose down
 ---
 
 ## 🤖 Telegram Бот
+
+### Команды
 
 | Команда | Описание |
 |---|---|
@@ -97,7 +165,7 @@ docker compose down
 
 ---
 
-## 🌸 Популярные slug-и
+### Популярные slug-и
 
 | Явление | slug |
 |---|---|
@@ -117,21 +185,21 @@ docker compose down
 ```text
 tsvetashki-krym/
 │
-├── routers/             # Маршруты FastAPI
-├── services/            # Бизнес-логика
-├── static/              # CSS, JavaScript
-├── templates/           # HTML шаблоны
-├── telegram_bot/        # Telegram бот
-├── data/                # SQLite база данных
+├── routers/              # Маршруты FastAPI
+├── services/             # Бизнес-логика
+├── static/               # CSS, JavaScript файлы
+├── templates/            # HTML шаблоны
+├── telegram_bot/         # Telegram бот
+├── data/                 # База данных SQLite
 │
-├── main.py              # Точка входа
-├── models.py            # Модели БД
-├── database.py          # Подключение к БД
-├── seed.py              # Тестовые данные
+├── main.py               # Точка входа приложения
+├── models.py             # Модели базы данных
+├── database.py           # Настройка подключения к БД
+├── seed.py               # Наполнение тестовыми данными
 │
-├── requirements.txt     # Python зависимости
-├── docker-compose.yml   # Docker конфигурация
-└── .env.example         # Пример .env
+├── requirements.txt      # Зависимости Python
+├── docker-compose.yml    # Конфигурация Docker
+└── .env.example          # Пример переменных окружения
 ```
 
 ---
@@ -140,17 +208,17 @@ tsvetashki-krym/
 
 | Метод | Endpoint | Описание |
 |---|---|---|
-| `GET` | `/api/events` | Список событий |
+| `GET` | `/api/events` | Список событий с фильтрами |
 | `GET` | `/api/events/map` | События для карты |
-| `GET` | `/api/phenomena/{slug}` | Детали явления |
-| `GET` | `/api/filters/meta` | Доступные фильтры |
+| `GET` | `/api/phenomena/{slug}` | Детальная информация о явлении |
+| `GET` | `/api/filters/meta` | Список доступных фильтров |
 | `POST` | `/api/subscribe` | Подписка на уведомления |
 
 ---
 
 ## 🐛 Решение проблем
 
-### База данных не создаётся
+### 1) База данных не создаётся
 
 ```bash
 python -c "from main import app, lifespan; import asyncio; asyncio.run(lifespan(app))"
@@ -158,15 +226,15 @@ python -c "from main import app, lifespan; import asyncio; asyncio.run(lifespan(
 
 ---
 
-### Порт `8000` уже занят (Windows)
+### 2) Порт 8000 уже занят (Windows)
 
-**Найти процесс**
+#### Найти процесс
 
 ```bash
 netstat -ano | findstr :8000
 ```
 
-**Завершить процесс**
+#### Завершить процесс
 
 ```bash
 taskkill /PID <PID> /F
@@ -174,21 +242,21 @@ taskkill /PID <PID> /F
 
 ---
 
-### Docker контейнеры не запускаются
+### 3) Docker контейнеры не запускаются
 
-**Полная очистка**
+#### Полная очистка
 
 ```bash
 docker compose down -v
 ```
 
-**Пересборка**
+#### Пересборка
 
 ```bash
 docker compose build --no-cache
 ```
 
-**Повторный запуск**
+#### Повторный запуск
 
 ```bash
 docker compose up
@@ -198,7 +266,7 @@ docker compose up
 
 ## 📞 Контакты
 
-| Контакт | Ссылка |
+| Платформа | Контакт |
 |---|---|
 | GitHub | `@videmyy` |
 | Email | `videmyy@gmail.com` |
@@ -207,4 +275,4 @@ docker compose up
 
 ## ❤️ Благодарности
 
-Сделано с любовью для Крыма 🌊🌸
+Сделано с ❤️ для Крыма
