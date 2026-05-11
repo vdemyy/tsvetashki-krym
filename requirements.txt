@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+python-dotenv
+jinja2
+python-multipart
+httpx
+itsdangerous
+aiogram>=3.13,<4

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}{{ p.name }}{% endblock %}
+{% block content %}
+<article class="phenom">
+  <header class="phenom__head">
+    <div class="phenom__iconbox" aria-hidden="true">
+      <i data-lucide="{{ lucide_icon }}" class="phenom__icon lucide-icon"></i>
+    </div>
+    <div class="phenom__intro">
+      <p class="phenom__slug">
+        <button type="button" class="copy-chip" data-copy="{{ p.slug }}">{{ p.slug }}</button>
+        <button type="button" class="copy-chip copy-chip--num" data-copy="{{ p.id }}">#{{ p.id }}</button>
+      </p>
+      <h1 class="hero__title hero__title--single">{{ p.name }}</h1>
+      <p class="muted phenom__cats">{{ p.category or "" }}{% if p.category and p.kind %} · {% endif %}{{ p.kind }}</p>
+      {% if p.website_url %}
+      <p class="phenom__linkrow"><a class="textlink" href="{{ p.website_url }}" rel="noopener" target="_blank"><i data-lucide="external-link" class="card__inline-ico" aria-hidden="true"></i>Сайт события</a></p>
+      {% endif %}
+    </div>
+  </header>
+
+  {% if p.description %}
+  <section class="section">
+    <h2 class="section__h">Описание</h2>
+    <p class="prose">{{ p.description }}</p>
+  </section>
+  {% endif %}
+
+  {% if p.typical_season %}
+  <section class="section">
+    <h2 class="section__h">Типичный сезон</h2>
+    <p class="prose">{{ p.typical_season }}</p>
+  </section>
+  {% endif %}
+
+  {% if p.water_temp_c %}
+  <section class="section">
+    <h2 class="section__h">Вода</h2>
+    <p class="prose">Ориентир: {{ "%.1f"|format(p.water_temp_c) }} °C.</p>
+  </section>
+  {% endif %}
+
+  {% if forecast and (forecast.start or forecast.peak or forecast.end) %}
+  <section class="section section--soft">
+    <h2 class="section__h"><i data-lucide="trending-up" class="section__ico" aria-hidden="true"></i>Прогноз по истории</h2>
+    <p class="prose">На основе {{ forecast.years_used }} записей:
+      {% if forecast.start %}начало ≈ {{ forecast.start }}{% endif %}
+      {% if forecast.peak %}, пик ≈ {{ forecast.peak }}{% endif %}
+      {% if forecast.end %}, конец ≈ {{ forecast.end }}{% endif %}.</p>
+    {% if forecast.start_std_days is not none %}
+    <p class="muted">Разброс между годами порядка ±{{ "%.0f"|format(forecast.start_std_days) }}–{{ "%.0f"|format(forecast.peak_std_days or 0) }} дней.</p>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if phase_history_json %}
+  <section class="section">
+    <h2 class="section__h">История по годам</h2>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>Год</th><th>Начало</th><th>Пик</th><th>Конец</th></tr>
+        </thead>
+        <tbody>
+          {% for row in phase_history_json %}
+          <tr>
+            <td>{{ row.year or row.y }}</td>
+            <td>{{ row.start or row.s }}</td>
+            <td>{{ row.peak or row.p }}</td>
+            <td>{{ row.end or row.e }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="section">
+    <h2 class="section__h">На карте</h2>
+    {% set stmap = {'active':'идёт','soon':'скоро','future':'позже','ended':'завершено'} %}
+    {% for e in events %}
+    <div class="event-block">
+      <h3 class="event-block__h">{{ e.place.name }}</h3>
+      <p class="muted">{{ e.place.region or "" }}{% if e.place.subregion %} · {{ e.place.subregion }}{% endif %}</p>
+      <dl class="dates">
+        <div><dt>Начало</dt><dd>{{ e.start_date }}</dd></div>
+        <div><dt>Пик</dt><dd>{{ e.peak_date }}</dd></div>
+        <div><dt>Конец</dt><dd>{{ e.end_date }}</dd></div>
+        <div><dt>Статус</dt><dd>{{ stmap.get(e.marker_status, e.marker_status) }}</dd></div>
+      </dl>
+      <p><a class="btn btn--small" href="/map"><i data-lucide="map-pinned" class="btn__ico" aria-hidden="true"></i>Карта</a></p>
+      <div id="weather-{{ e.id }}" class="weather-hint muted"></div>
+    </div>
+    {% endfor %}
+  </section>
+
+  <section class="section section--soft">
+    <h2 class="section__h"><i data-lucide="bell" class="section__ico" aria-hidden="true"></i>Уведомления</h2>
+    <form class="subform" method="post" action="/subscribe">
+      <input type="hidden" name="phenomenon_id" value="{{ p.id }}">
+      <input type="email" name="email" required placeholder="Email" autocomplete="email">
+      <button type="submit" class="btn">Сохранить email</button>
+    </form>
+    <p class="hint">Письма пока не отправляются. В Telegram: <code>/follow {{ p.slug }}</code>.</p>
+  </section>
+</article>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll("[data-copy]").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const v = btn.getAttribute("data-copy");
+    try { await navigator.clipboard.writeText(String(v)); btn.classList.add("copied"); setTimeout(() => btn.classList.remove("copied"), 900); } catch (_) {}
+  });
+});
+{% for e in events %}
+fetch("/api/weather/hint?lat={{ e.place.latitude }}&lon={{ e.place.longitude }}")
+  .then((r) => r.json())
+  .then((j) => {
+    const box = document.getElementById("weather-{{ e.id }}");
+    if (box && j.message) box.textContent = j.message;
+  })
+  .catch(() => {});
+{% endfor %}
+if (typeof lucide !== "undefined" && lucide.createIcons) {
+  lucide.createIcons({ attrs: { class: ["lucide", "lucide-icon"] } });
+}
+</script>
+{% endblock %}

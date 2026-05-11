@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Админка{% endblock %}
+{% block content %}
+<h1 class="h1">Панель</h1>
+<p class="lead">Явлений: {{ n_phenomena }} · Мест: {{ n_places }} · Событий: {{ n_events }}</p>
+<ul class="timers" style="list-style:none;padding-left:0">
+  <li><a href="/admin/phenomena">Явления</a></li>
+  <li><a href="/admin/places">Места</a></li>
+  <li><a href="/admin/events">События</a></li>
+  <li><a href="/admin/logout">Выйти</a></li>
+</ul>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Явления{% endblock %}
+{% block content %}
+<h1 class="h1">Явления</h1>
+<p><a class="btn btn--small" href="/admin/phenomena/new">Добавить</a> · <a href="/admin">Назад</a></p>
+<div class="table-wrap" style="margin-top:1rem">
+  <table class="table">
+    <thead>
+      <tr><th>ID</th><th>Slug</th><th>Название</th><th>Тип</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.id }}</td>
+        <td><code>{{ r.slug }}</code></td>
+        <td>{{ r.name }}</td>
+        <td>{{ r.kind }}</td>
+        <td>
+          <a href="/admin/phenomena/{{ r.id }}/edit">Изм.</a>
+          <form method="post" action="/admin/phenomena/{{ r.id }}/delete" style="display:inline" onsubmit="return confirm('Удалить явление и связанные события?');">
+            <button type="submit" class="btn btn--ghost btn--small" style="margin-left:0.35rem">Удал.</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

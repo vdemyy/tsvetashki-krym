@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Событие{% endblock %}
+{% block content %}
+<h1 class="h1">Редактирование события #{{ row.id }}</h1>
+<p><a href="/admin/events">Назад</a></p>
+<form class="filters" method="post" action="/admin/events/{{ row.id }}/edit" style="display:block;max-width:720px">
+  <label>Явление
+    <select name="phenomenon_id" required>
+      {% for p in phenomena %}
+      <option value="{{ p.id }}" {% if p.id == row.phenomenon_id %}selected{% endif %}>{{ p.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Место
+    <select name="place_id" required>
+      {% for pl in places %}
+      <option value="{{ pl.id }}" {% if pl.id == row.place_id %}selected{% endif %}>{{ pl.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Начало
+    <input type="date" name="start_date" required value="{{ row.start_date.isoformat() }}">
+  </label>
+  <label>Пик
+    <input type="date" name="peak_date" required value="{{ row.peak_date.isoformat() }}">
+  </label>
+  <label>Конец
+    <input type="date" name="end_date" required value="{{ row.end_date.isoformat() }}">
+  </label>
+  <label>Интенсивность
+    <input type="number" name="intensity" min="1" max="5" value="{{ row.intensity }}">
+  </label>
+  <label>История фаз (JSON)
+    <textarea name="phase_history_json" rows="10">{{ phase_history_json }}</textarea>
+  </label>
+  <label>Заметки
+    <textarea name="notes" rows="2">{{ row.notes or '' }}</textarea>
+  </label>
+  <button class="btn" type="submit" style="margin-top:0.75rem">Сохранить</button>
+</form>
+{% endblock %}

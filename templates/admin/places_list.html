@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Места{% endblock %}
+{% block content %}
+<h1 class="h1">Места</h1>
+<p><a class="btn btn--small" href="/admin/places/new">Добавить</a> · <a href="/admin">Назад</a></p>
+<div class="table-wrap" style="margin-top:1rem">
+  <table class="table">
+    <thead>
+      <tr><th>ID</th><th>Название</th><th>Регион</th><th>Подрегион</th><th>Коорд.</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.id }}</td>
+        <td>{{ r.name }}</td>
+        <td>{{ r.region or "" }}</td>
+        <td>{{ r.subregion or "" }}</td>
+        <td>{{ "%.4f"|format(r.latitude) }}, {{ "%.4f"|format(r.longitude) }}</td>
+        <td>
+          <a href="/admin/places/{{ r.id }}/edit">Изм.</a>
+          <form method="post" action="/admin/places/{{ r.id }}/delete" style="display:inline" onsubmit="return confirm('Удалить место и связанные события?');">
+            <button type="submit" class="btn btn--ghost btn--small" style="margin-left:0.35rem">Удал.</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

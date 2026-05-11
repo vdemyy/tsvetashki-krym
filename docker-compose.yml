@@ -1,0 +1,52 @@
+services:
+  backend:
+    build: .
+    container_name: tsvetashki_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - tsvetashki_data:/app/data
+    working_dir: /app
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=sqlite:////app/data/tsvetashki.db
+
+  bot:
+    profiles: ["bot"]
+    build: .
+    container_name: tsvetashki_bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - tsvetashki_data:/app/data
+    working_dir: /app
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=sqlite:////app/data/tsvetashki.db
+    command: ["python", "-m", "telegram_bot.bot"]
+
+  # Отдельный сервис для одноразовой проверки уведомлений (можно запускать по cron)
+  notification_worker:
+    profiles: ["bot", "worker"]
+    build: .
+    container_name: tsvetashki_notifier
+    restart: "no"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - tsvetashki_data:/app/data
+    working_dir: /app
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=sqlite:////app/data/tsvetashki.db
+    command: ["python", "-m", "telegram_bot.notification_worker"]
+
+volumes:
+  tsvetashki_data:

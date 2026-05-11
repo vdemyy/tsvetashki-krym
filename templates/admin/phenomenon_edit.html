@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<h1 class="hero__title hero__title--single">{{ title }}</h1>
+<p class="muted"><a href="/admin/phenomena">Назад</a></p>
+<form class="filters" method="post" action="{{ '/admin/phenomena/' ~ row.id ~ '/edit' if row else '/admin/phenomena/new' }}" style="display:block;max-width:640px">
+  <label>Slug (для бота и URL)
+    <input name="slug" required value="{{ row.slug if row else '' }}" placeholder="lavanda-turgenevka">
+  </label>
+  <label>Название
+    <input name="name" required value="{{ row.name if row else '' }}">
+  </label>
+  <label>Тип (flowering / visual / harvest / animals / activity)
+    <input name="kind" required value="{{ row.kind if row else 'flowering' }}">
+  </label>
+  <label>Категория / теги
+    <input name="category" value="{{ row.category or '' }}">
+  </label>
+  <label>Описание
+    <textarea name="description" rows="4">{{ row.description or '' }}</textarea>
+  </label>
+  <label>Типичный сезон (текст)
+    <input name="typical_season" value="{{ row.typical_season or '' }}">
+  </label>
+  <label>Иконка Lucide (kebab-case, см. lucide.dev/icons)
+    <input name="icon_lucide" value="{{ row.icon_lucide if row and row.icon_lucide else '' }}" placeholder="flower-2">
+  </label>
+  <label>Эмодзи (устар., можно пусто)
+    <input name="icon_emoji" value="{{ row.icon_emoji if row else '' }}">
+  </label>
+  <label>URL главного фото
+    <input name="main_photo_url" value="{{ row.main_photo_url or '' }}">
+  </label>
+  <label>Сайт (фестивали и т.п.)
+    <input name="website_url" value="{{ row.website_url or '' }}">
+  </label>
+  <label>Темп. воды °C (опционально)
+    <input name="water_temp_c" value="{{ row.water_temp_c if row and row.water_temp_c is not none else '' }}">
+  </label>
+  <button class="btn" type="submit" style="margin-top:0.75rem">Сохранить</button>
+</form>
+{% endblock %}

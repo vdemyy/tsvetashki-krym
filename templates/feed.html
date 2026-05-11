@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Лента{% endblock %}
+{% block content %}
+<section class="hero hero--compact">
+  <h1 class="hero__title">{% if filters.extended %}Планирование{% else %}Сейчас и неделя{% endif %}</h1>
+  <p class="hero__sub">{% if filters.extended %}Горизонт до нескольких месяцев.{% else %}События в разгаре или старт в ближайшие 7 дней.{% endif %}</p>
+  <div class="hero__links">
+    <a class="pill {% if not filters.extended %}pill--on{% endif %}" href="/?extended=0">7 дней</a>
+    <a class="pill {% if filters.extended %}pill--on{% endif %}" href="/?extended=1">Шире</a>
+    <a class="pill pill--ghost" href="/map"><i data-lucide="map-pinned" class="pill__ico" aria-hidden="true"></i>Карта</a>
+  </div>
+</section>
+
+<section class="panel">
+  <form class="filters" method="get" action="/">
+    <input type="hidden" name="extended" value="{{ 1 if filters.extended else 0 }}">
+    <label class="filters__grow">
+      <span class="filters__lab">Поиск</span>
+      <input type="search" name="q" value="{{ filters.q }}" placeholder="Название, место, slug…" autocomplete="off">
+    </label>
+    <label>
+      <span class="filters__lab">Регион</span>
+      <select name="region">
+        <option value="">Все</option>
+        {% for r in meta_regions %}
+        <option value="{{ r }}" {% if filters.region == r %}selected{% endif %}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span class="filters__lab">Подрегион</span>
+      <select name="subregion">
+        <option value="">Все</option>
+        {% for s in meta_subregions %}
+        <option value="{{ s }}" {% if filters.subregion == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span class="filters__lab">Тип</span>
+      <select name="kind">
+        <option value="">Все</option>
+        {% for k in meta_kinds %}
+        <option value="{{ k }}" {% if filters.kind == k %}selected{% endif %}>{{ k }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span class="filters__lab">Явление</span>
+      <select name="phenomenon_id">
+        <option value="">Все</option>
+        {% for ph in phenomena_options %}
+        <option value="{{ ph.id }}" {% if filters.phenomenon_id == ph.id %}selected{% endif %}>{{ ph.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span class="filters__lab">Месяц</span>
+      <select name="month">
+        <option value="">—</option>
+        {% for m in range(1,13) %}
+        <option value="{{ m }}" {% if filters.month == m %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span class="filters__lab">Сортировка</span>
+      <select name="sort">
+        <option value="start" {% if filters.sort == "start" %}selected{% endif %}>Начало</option>
+        <option value="peak" {% if filters.sort == "peak" %}selected{% endif %}>Пик</option>
+        <option value="end" {% if filters.sort == "end" %}selected{% endif %}>Конец</option>
+        <option value="place" {% if filters.sort == "place" %}selected{% endif %}>Место</option>
+        <option value="name" {% if filters.sort == "name" %}selected{% endif %}>Название</option>
+      </select>
+    </label>
+    <div class="filters__actions">
+      <button type="submit" class="btn">Показать</button>
+      <a class="btn btn--ghost" href="/">Сброс</a>
+    </div>
+  </form>
+</section>
+
+{% if not events %}
+<p class="empty">Нет событий в этом окне. Попробуйте <a href="/?extended=1">расширенный режим</a> или <a href="/map">карту</a>.</p>
+{% endif %}
+
+<div class="cards">
+  {% set stmap = {'active':'идёт','soon':'скоро','future':'позже','ended':'завершено'} %}
+  {% for e in events %}
+  <article class="card">
+    <div class="card__top">
+      <span class="card__id">
+        <button type="button" class="copy-chip" data-copy="{{ e.phenomenon.slug }}">{{ e.phenomenon.slug }}</button>
+        <button type="button" class="copy-chip copy-chip--num" data-copy="{{ e.phenomenon.id }}">#{{ e.phenomenon.id }}</button>
+      </span>
+      <span class="badge badge--{{ e.marker_status }}">{{ stmap.get(e.marker_status, e.marker_status) }}</span>
+    </div>
+    <div class="card__title">
+      <span class="card__iconwrap" aria-hidden="true">
+        <i data-lucide="{{ e.phenomenon.icon_lucide }}" class="card__icon lucide-icon"></i>
+      </span>
+      <div class="card__body">
+        <h2 class="card__name"><a href="/p/{{ e.phenomenon.slug }}">{{ e.phenomenon.name }}</a></h2>
+        <p class="card__meta"><i data-lucide="map-pin" class="card__inline-ico" aria-hidden="true"></i>{{ e.place.name }} · {{ e.place.region or "" }}{% if e.place.subregion %} · {{ e.place.subregion }}{% endif %}</p>
+      </div>
+    </div>
+    <dl class="dates">
+      <div><dt>Начало</dt><dd>{{ e.start_date }}</dd></div>
+      <div><dt>Пик</dt><dd>{{ e.peak_date }}</dd></div>
+      <div><dt>Конец</dt><dd>{{ e.end_date }}</dd></div>
+      <div><dt>Сила</dt><dd>{{ e.intensity }}/5</dd></div>
+    </dl>
+    <ul class="timers">
+      {% for t in e.timers %}
+      <li>{% if t.days is not none %}{{ t.days }} дн. — {% endif %}{{ t.label }}</li>
+      {% endfor %}
+    </ul>
+    <form class="subform" method="post" action="/subscribe">
+      <input type="hidden" name="phenomenon_id" value="{{ e.phenomenon.id }}">
+      <input type="email" name="email" required placeholder="Email для уведомлений" autocomplete="email">
+      <button type="submit" class="btn btn--small">Подписаться</button>
+    </form>
+    <p class="hint">Telegram: <code>/follow {{ e.phenomenon.slug }}</code> в боте (см. <code>telegram_bot/</code>).</p>
+  </article>
+  {% endfor %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll("[data-copy]").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const v = btn.getAttribute("data-copy");
+    try { await navigator.clipboard.writeText(String(v)); btn.classList.add("copied"); setTimeout(() => btn.classList.remove("copied"), 900); } catch (_) {}
+  });
+});
+if (typeof lucide !== "undefined" && lucide.createIcons) {
+  lucide.createIcons({ attrs: { class: ["lucide", "lucide-icon"] } });
+}
+</script>
+{% endblock %}
