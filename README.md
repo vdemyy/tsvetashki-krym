@@ -1,77 +1,137 @@
-# 🌸 Цветашки Крым
+🌸 Цветашки Крым
+Сезонные явления Крыма — веб-приложение и Telegram бот
 
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
-[![SQLite](https://img.shields.io/badge/SQLite-3-blue.svg)](https://www.sqlite.org/)
-[![Telegram](https://img.shields.io/badge/Telegram-Bot-blue.svg)](https://core.telegram.org/bots)
-[![Docker](https://img.shields.io/badge/Docker-24.0+-blue.svg)](https://www.docker.com/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+-------------------------------------------------------------------------------
 
-> Сезонные явления Крыма — сухие факты, тихий интерфейс.  
-> Отслеживайте цветение лаванды, сакуры, маков и другие природные феномены.
+О проекте
 
-## 📋 О проекте
+Веб-приложение и Telegram-бот для отслеживания сезонных явлений в Крыму.
 
-**Цветашки Крым** — это веб-приложение и Telegram-бот для отслеживания сезонных явлений в Крыму. Проект помогает жителям и туристам не пропустить самые красивые природные события.
+Что можно отслеживать:
 
-### Что можно отслеживать?
+🌺 Цветение: лаванда, сакура, маки, пионы, глициния, подснежники
+🌅 Визуальные эффекты: закаты, туманы, гало
+🍇 Урожай: черешня, виноград
+🐬 Животные: дельфины
+🎪 Мероприятия: фестивали, ярмарки
 
-- 🌺 **Цветение**: лаванда, сакура, маки, пионы, глициния, подснежники
-- 🌅 **Визуальные эффекты**: закаты с зелёным лучом, туманы, гало
-- 🍇 **Урожай**: черешня, виноград
-- 🐬 **Животные**: дельфины у берега
-- 🎪 **Мероприятия**: фестивали, ярмарки
+-------------------------------------------------------------------------------
 
-### Возможности
+Переменные окружения (.env)
 
-✅ Веб-сайт с лентой событий и картой  
-✅ Telegram-бот для подписок  
-✅ Админ-панель для управления контентом  
-✅ Фильтрация по региону, типу, месяцу  
-✅ Поиск по названиям  
-✅ Автоматические уведомления  
-✅ Красивые карточки событий  
-✅ Адаптивный дизайн  
+Создайте файл .env в корне проекта:
 
-## 🚀 Быстрый старт
+# Обязательные
+SESSION_SECRET=ваша-случайная-строка-из-32-символов
+ADMIN_PASSWORD=ваш-пароль-для-админки
+DATABASE_URL=sqlite:///./data/tsvetashki.db
 
-### Требования
+# Опциональные
+OPENWEATHER_API_KEY=
+TELEGRAM_BOT_TOKEN=
+BASE_URL=http://localhost:8000
 
-- Python 3.11 или выше
-- Git
-- Docker (опционально)
+Как сгенерировать SESSION_SECRET:
 
-### Установка
+python -c "import secrets; print(secrets.token_urlsafe(32))"
 
-```bash
-# 1. Клонируйте репозиторий
+-------------------------------------------------------------------------------
+
+Запуск
+
+Способ 1: Локальный запуск
+
 git clone https://github.com/videmyy/tsvetashki-krym.git
 cd tsvetashki-krym
-
-# 2. Создайте виртуальное окружение
 python -m venv venv
-
-# Активация на Windows:
 venv\Scripts\activate
-# Активация на Linux/Mac:
-source venv/bin/activate
-
-# 3. Установите зависимости
 pip install -r requirements.txt
-
-# 4. Создайте файл с переменными окружения
 copy .env.example .env
-# или на Linux/Mac:
-cp .env.example .env
-
-# 5. Отредактируйте .env (обязательно)
-# Откройте файл и заполните SESSION_SECRET и ADMIN_PASSWORD
-notepad .env
-
-# 6. Запустите приложение
-python main.py
-# Или с автоматической перезагрузкой:
 uvicorn main:app --reload --port 8000
 
-# 7. Откройте в браузере
-# http://localhost:8000
+Способ 2: Запуск через Docker
+
+docker compose up backend
+docker compose --profile bot up
+docker compose down
+
+-------------------------------------------------------------------------------
+
+Telegram Бот
+
+Команды:
+
+/start - Приветствие
+/help - Справка
+/follow <slug> - Подписаться
+/unfollow <slug> - Отписаться
+/mine - Мои подписки
+/today - Что сегодня
+/week - Что на неделе
+/search <текст> - Поиск
+
+Популярные slug-и:
+
+Лаванда ......... lavanda-turgenevka
+Сакура ......... sakura-nikitsky
+Маки ........... maki-koktebel
+Глициния ....... glycine-alupka
+Пионы .......... piony-nbs
+Подснежники .... podsnezhniki-laspi
+Закаты ......... zakat-fiorent
+Черешня ........ cherry-kerch
+
+-------------------------------------------------------------------------------
+
+Структура проекта
+
+tsvetashki-krym/
+├── routers/          # Маршруты FastAPI
+├── services/         # Бизнес-логика
+├── static/           # CSS, JS
+├── templates/        # HTML шаблоны
+├── telegram_bot/     # Telegram бот
+├── data/             # База данных
+├── main.py           # Точка входа
+├── models.py         # Модели БД
+├── database.py       # Настройка БД
+├── seed.py           # Наполнение данными
+├── requirements.txt  # Зависимости
+├── docker-compose.yml
+└── .env.example
+
+-------------------------------------------------------------------------------
+
+API Эндпоинты
+
+GET /api/events - Список событий
+GET /api/events/map - События для карты
+GET /api/phenomena/{slug} - Детали явления
+GET /api/filters/meta - Доступные фильтры
+POST /api/subscribe - Подписка
+
+-------------------------------------------------------------------------------
+
+Решение проблем
+
+Если база данных не создаётся:
+
+python -c "from main import app, lifespan; import asyncio; asyncio.run(lifespan(app))"
+
+Если порт 8000 занят (Windows):
+
+netstat -ano | findstr :8000
+taskkill /PID <PID> /F
+
+Если Docker не запускается:
+
+docker compose down -v
+docker compose build --no-cache
+docker compose up
+
+-------------------------------------------------------------------------------
+
+Контакты
+
+GitHub: @videmyy
+Email: videmyy@gmail.com
