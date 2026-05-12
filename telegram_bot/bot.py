@@ -4,7 +4,7 @@ Telegram-бот для подписок на сезонные явления с 
 Функции:
 - Подписка/отписка на явления
 - Ежедневная проверка изменения статусов событий
-- Красивые форматированные сообщения с эмодзи и кнопками
+- Красивые форматированные сообщения с эмодзи и HTML
 - Умные уведомления: начало, пик, конец, напоминания
 """
 
@@ -16,7 +16,7 @@ import os
 import sys
 from dataclasses import dataclass
 from datetime import date, timedelta
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ParseMode
@@ -36,7 +36,6 @@ from sqlalchemy.orm import Session, joinedload
 from database import SessionLocal
 from models import Event, Phenomenon, Place, TelegramWatch
 from services.forecast import marker_status
-from services.icon_map import lucide_icon_for_phenomenon
 
 logging.basicConfig(
     level=logging.INFO,
@@ -62,12 +61,12 @@ STATUS_EMOJI = {
     "ended": "✅"
 }
 
-# Статус-тексты на русском
-STATUS_TEXT = {
-    "active": "🔴 ИДЁТ ПРЯМО СЕЙЧАС",
-    "soon": "🟡 НАЧИНАЕТСЯ СКОРО",
-    "future": "⚪ ЗАПЛАНИРОВАНО",
-    "ended": "✅ ЗАВЕРШЕНО"
+# Цветные статусы для HTML
+STATUS_COLOR = {
+    "active": "🟠",
+    "soon": "🟡",
+    "future": "⚪",
+    "ended": "✅"
 }
 
 
@@ -94,7 +93,7 @@ def get_kind_emoji(kind: str) -> str:
 
 
 def format_date_relative(target_date: date, today: date) -> str:
-    """Форматирует дату с относительным указанием (сегодня, завтра и т.д.)."""
+    """Форматирует дату с относительным указанием."""
     diff = (target_date - today).days
     
     if diff == 0:
@@ -111,22 +110,22 @@ def format_date_relative(target_date: date, today: date) -> str:
         return target_date.strftime("%d.%m.%Y")
 
 
-def format_event_message(
-    event: Event,
-    status: str,
-    today: date,
-    include_buttons: bool = True
-) -> tuple[str, InlineKeyboardMarkup | None]:
-    """Форматирует сообщение о событии с красивым оформлением."""
-    
+def escape_html(text: str) -> str:
+    """Экранирует HTML спецсимволы."""
+    if not text:
+        return ""
+    return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def format_event_message(event: Event, status: str, today: date, include_buttons: bool = False) -> str:
+    """Форматирует сообщение о событии с HTML."""
     ph = event.phenomenon
     pl = event.place
     
     emoji = get_kind_emoji(ph.kind)
-    status_emoji_full = STATUS_EMOJI.get(status, "📌")
-    status_text_full = STATUS_TEXT.get(status, status.upper())
+    status_emoji = STATUS_EMOJI.get(status, "📌")
     
-    # Индикатор интенсивности (звёздочки)
+    # Индикатор интенсивности
     intensity_stars = "⭐" * event.intensity + "☆" * (5 - event.intensity)
     
     # Относительные даты
@@ -134,51 +133,37 @@ def format_event_message(
     peak_relative = format_date_relative(event.peak_date, today)
     end_relative = format_date_relative(event.end_date, today)
     
-    message = f"""\
-{emoji} *{ph.name}* {status_emoji_full}
+    status_text = ""
+    if status == "active":
+        status_text = "🔴 ИДЁТ ПРЯМО СЕЙЧАС"
+    elif status == "soon":
+        status_text = "🟡 НАЧИНАЕТСЯ СКОРО"
+    elif status == "future":
+        status_text = "⚪ ЗАПЛАНИРОВАНО"
+    else:
+        status_text = "✅ ЗАВЕРШЕНО"
+    
+    message = f"""<b>{emoji} {escape_html(ph.name)}</b> {status_emoji}
 
-📍 *Место:* {pl.name}
-🗺 *Регион:* {pl.region or "Крым"}{f" · {pl.subregion}" if pl.subregion else ""}
+📍 <b>Место:</b> {escape_html(pl.name)}
+🗺 <b>Регион:</b> {escape_html(pl.region or "Крым")}{f" · {escape_html(pl.subregion)}" if pl.subregion else ""}
 
-📅 *Даты:*
-• Начало: `{event.start_date.strftime('%d.%m.%Y')}` ({start_relative})
-• Пик: `{event.peak_date.strftime('%d.%m.%Y')}` ({peak_relative})
-• Конец: `{event.end_date.strftime('%d.%m.%Y')}` ({end_relative})
+📅 <b>Даты:</b>
+• <b>Начало:</b> {event.start_date.strftime('%d.%m.%Y')} ({start_relative})
+• <b>Пик:</b> {event.peak_date.strftime('%d.%m.%Y')} ({peak_relative})
+• <b>Конец:</b> {event.end_date.strftime('%d.%m.%Y')} ({end_relative})
 
-💪 *Интенсивность:* {intensity_stars} ({event.intensity}/5)
+💪 <b>Интенсивность:</b> {intensity_stars} ({event.intensity}/5)
 
-{status_text_full}
-"""
-
+{status_emoji} <b>{status_text}</b>"""
+    
     if ph.description:
-        message += f"\n📝 *Описание:* {ph.description[:200]}{'...' if len(ph.description) > 200 else ''}"
+        desc = escape_html(ph.description[:200])
+        if len(ph.description) > 200:
+            desc += "..."
+        message += f"\n\n📝 <b>Описание:</b> {desc}"
     
-    if ph.typical_season:
-        message += f"\n📆 *Типичный сезон:* {ph.typical_season}"
-    
-    # Кнопки
-    buttons = InlineKeyboardBuilder()
-    
-    if include_buttons:
-        # Кнопка "Подробнее на сайте"
-        website_url = ph.website_url or ""
-        if website_url and website_url.startswith("/"):
-            base_url = os.getenv("BASE_URL", "https://tsvetashki.ru")
-            website_url = f"{base_url}{website_url}"
-        
-        if website_url:
-            buttons.button(text="🔗 Подробнее", url=website_url)
-        
-        # Кнопка "Отписаться"
-        buttons.button(
-            text="🔕 Отписаться",
-            callback_data=f"unsubscribe_{ph.id}"
-        )
-        
-        buttons.adjust(1)
-        return message, buttons.as_markup()
-    
-    return message, None
+    return message
 
 
 class NotificationService:
@@ -186,15 +171,14 @@ class NotificationService:
     
     def __init__(self, bot: Bot):
         self.bot = bot
-        self._last_check_status: Dict[int, str] = {}  # event_id -> last_status
+        self._last_check_status: Dict[int, str] = {}
     
     async def check_and_notify(self) -> None:
-        """Проверяет все события и отправляет уведомления при смене статуса."""
+        """Проверяет события и отправляет уведомления."""
         db = SessionLocal()
         today = date.today()
         
         try:
-            # Получаем все активные события (текущие и будущие на 30 дней)
             future_limit = today + timedelta(days=30)
             events = db.scalars(
                 select(Event)
@@ -210,57 +194,29 @@ class NotificationService:
                 )
             ).unique().all()
             
-            changes = []
-            
             for event in events:
                 new_status = marker_status(today, event.start_date, event.end_date)
                 old_status = self._last_check_status.get(event.id)
                 
-                # Если статус изменился или это первая проверка
                 if old_status != new_status:
-                    changes.append(EventStatusChange(
-                        event_id=event.id,
-                        phenomenon_name=event.phenomenon.name,
-                        phenomenon_slug=event.phenomenon.slug,
-                        place_name=event.place.name,
-                        region=event.place.region or "Крым",
-                        old_status=old_status or "unknown",
-                        new_status=new_status,
-                        start_date=event.start_date,
-                        peak_date=event.peak_date,
-                        end_date=event.end_date,
-                        intensity=event.intensity,
-                        days_until=(event.start_date - today).days if new_status == "soon" else None
-                    ))
-                    
-                    # Обновляем сохранённый статус
                     self._last_check_status[event.id] = new_status
+                    await self._notify_subscribers(event, new_status, today)
                     
-                    # Также отправляем напоминания за 3 дня до пика
+                    # Напоминание о пике
                     days_to_peak = (event.peak_date - today).days
                     if 1 <= days_to_peak <= 3 and new_status != "ended":
                         await self._send_peak_reminder(event, today, days_to_peak)
-            
-            # Отправляем уведомления о смене статуса
-            for change in changes:
-                await self._notify_subscribers(change)
-                
+                        
         except Exception as e:
             log.exception(f"Ошибка при проверке уведомлений: {e}")
         finally:
             db.close()
     
-    async def _notify_subscribers(self, change: EventStatusChange) -> None:
-        """Отправляет уведомления подписчикам об изменении статуса."""
+    async def _notify_subscribers(self, event: Event, status: str, today: date) -> None:
+        """Отправляет уведомления подписчикам."""
         db = SessionLocal()
         
         try:
-            # Получаем всех подписчиков на это явление
-            # Сначала получаем phenomenon_id по event_id
-            event = db.get(Event, change.event_id)
-            if not event:
-                return
-            
             watches = db.scalars(
                 select(TelegramWatch).where(
                     TelegramWatch.phenomenon_id == event.phenomenon_id
@@ -270,22 +226,18 @@ class NotificationService:
             if not watches:
                 return
             
-            message, keyboard = format_event_message(event, change.new_status, date.today())
+            message = format_event_message(event, status, today)
             
-            # Отправляем каждому подписчику
             for watch in watches:
                 try:
                     await self.bot.send_message(
                         chat_id=watch.chat_id,
                         text=message,
-                        parse_mode=ParseMode.MARKDOWN,
-                        reply_markup=keyboard
+                        parse_mode=ParseMode.HTML
                     )
-                    log.info(f"Уведомление отправлено в чат {watch.chat_id} о событии {change.event_id}")
-                    # Небольшая задержка, чтобы не флудить
                     await asyncio.sleep(0.1)
                 except Exception as e:
-                    log.error(f"Не удалось отправить сообщение в чат {watch.chat_id}: {e}")
+                    log.error(f"Ошибка отправки в чат {watch.chat_id}: {e}")
                     
         except Exception as e:
             log.exception(f"Ошибка при отправке уведомлений: {e}")
@@ -293,12 +245,14 @@ class NotificationService:
             db.close()
     
     async def _send_peak_reminder(self, event: Event, today: date, days_to_peak: int) -> None:
-        """Отправляет напоминание о приближающемся пике."""
+        """Отправляет напоминание о пике."""
         db = SessionLocal()
         
         try:
             watches = db.scalars(
-                select(TelegramWatch).where(TelegramWatch.phenomenon_id == event.phenomenon_id)
+                select(TelegramWatch).where(
+                    TelegramWatch.phenomenon_id == event.phenomenon_id
+                )
             ).all()
             
             if not watches:
@@ -306,231 +260,165 @@ class NotificationService:
             
             ph = event.phenomenon
             pl = event.place
-            
             emoji = get_kind_emoji(ph.kind)
             
             if days_to_peak == 1:
-                message = f"""\
-{emoji} *{ph.name}* — НАПОМИНАНИЕ 🌟
+                message = f"""<b>{emoji} {escape_html(ph.name)} - НАПОМИНАНИЕ</b> 🔔
 
-🔥 *Пик явления — ЗАВТРА!* 🔥
+🔥 <b>ПИК ЯВЛЕНИЯ - ЗАВТРА!</b> 🔥
 
-📍 *Где:* {pl.name}
-📅 *Дата пика:* {event.peak_date.strftime('%d.%m.%Y')}
+📍 <b>Где:</b> {escape_html(pl.name)}
+📅 <b>Дата пика:</b> {event.peak_date.strftime('%d.%m.%Y')}
 
-Самое время планировать поездку! 🚗
+<i>Самое время планировать поездку!</i> 🚗
 
-💡 *Совет:* Лучшее время для посещения — утренние часы, когда меньше людей и лучший свет для фото.
-"""
+💡 <b>Совет:</b> Лучшее время для посещения - утренние часы, когда меньше людей и лучший свет для фото."""
             else:
-                message = f"""\
-{emoji} *{ph.name}* — НАПОМИНАНИЕ 📅
+                message = f"""<b>{emoji} {escape_html(ph.name)} - НАПОМИНАНИЕ</b> 🔔
 
-🌿 *Пик явления через {days_to_peak} дня!* 🌿
+🌿 <b>Пик явления через {days_to_peak} дня!</b> 🌿
 
-📍 *Где:* {pl.name}
-📅 *Дата пика:* {event.peak_date.strftime('%d.%m.%Y')}
+📍 <b>Где:</b> {escape_html(pl.name)}
+📅 <b>Дата пика:</b> {event.peak_date.strftime('%d.%m.%Y')}
 
-Не пропустите самое красивое время! ✨
-"""
-            
-            keyboard = InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [InlineKeyboardButton(
-                        text="🔗 Подробнее",
-                        url=ph.website_url or f"https://tsvetashki.ru/p/{ph.slug}"
-                    )],
-                    [InlineKeyboardButton(
-                        text="🗺 Показать на карте",
-                        callback_data=f"show_map_{event.place_id}"
-                    )]
-                ]
-            )
+<i>Не пропустите самое красивое время!</i> ✨"""
             
             for watch in watches:
                 try:
                     await self.bot.send_message(
                         chat_id=watch.chat_id,
                         text=message,
-                        parse_mode=ParseMode.MARKDOWN,
-                        reply_markup=keyboard
+                        parse_mode=ParseMode.HTML
                     )
                     await asyncio.sleep(0.1)
                 except Exception as e:
-                    log.error(f"Не удалось отправить напоминание в чат {watch.chat_id}: {e}")
+                    log.error(f"Ошибка отправки напоминания в чат {watch.chat_id}: {e}")
                     
         except Exception as e:
-            log.exception(f"Ошибка при отправке напоминания о пике: {e}")
+            log.exception(f"Ошибка при отправке напоминания: {e}")
         finally:
             db.close()
 
 
-# Инициализация бота и диспетчера
+# Инициализация бота
 bot = Bot(token=os.getenv("TELEGRAM_BOT_TOKEN", "").strip())
 dp = Dispatcher()
 notification_service = NotificationService(bot)
 
 
-# --- Вспомогательные функции ---
-
-async def get_user_subscriptions(chat_id: int) -> List[Tuple[Phenomenon, Event]]:
-    """Возвращает список подписок пользователя с актуальными событиями."""
-    db = SessionLocal()
-    today = date.today()
-    
-    try:
-        # Получаем подписки пользователя
-        watches = db.scalars(
-            select(TelegramWatch)
-            .where(TelegramWatch.chat_id == chat_id)
-        ).all()
-        
-        if not watches:
-            return []
-        
-        phenomenon_ids = [w.phenomenon_id for w in watches]
-        
-        # Получаем актуальные события для этих явлений
-        events = db.scalars(
-            select(Event)
-            .options(joinedload(Event.phenomenon), joinedload(Event.place))
-            .where(
-                Event.phenomenon_id.in_(phenomenon_ids),
-                Event.end_date >= today - timedelta(days=30)  # Показываем завершённые за последний месяц
-            )
-            .order_by(Event.start_date)
-        ).unique().all()
-        
-        return [(e.phenomenon, e) for e in events]
-    finally:
-        db.close()
-
-
 def get_main_keyboard() -> ReplyKeyboardMarkup:
-    """Создаёт главную клавиатуру бота."""
+    """Создаёт главную клавиатуру."""
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📋 Мои подписки")],
-            [KeyboardButton(text="🔍 Найти явление"), KeyboardButton(text="❓ Помощь")]
+            [KeyboardButton(text="📋 Мои подписки"), KeyboardButton(text="🔍 Найти явление")],
+            [KeyboardButton(text="📅 Что сегодня"), KeyboardButton(text="📆 Что на неделе")],
+            [KeyboardButton(text="❓ Помощь"), KeyboardButton(text="ℹ️ О боте")]
         ],
         resize_keyboard=True
     )
 
 
-# --- Обработчики команд ---
+# ==================== КОМАНДЫ БОТА ====================
 
 @dp.message(Command("start"))
 async def cmd_start(message: Message) -> None:
-    """Обработчик команды /start."""
-    welcome_text = """\
-🌺 *Добро пожаловать в Цветашки Крым!* 🌺
+    """Приветствие."""
+    text = """<b>🌸 ДОБРО ПОЖАЛОВАТЬ В ЦВЕТАШКИ КРЫМ!</b> 🌸
 
-Я помогу вам не пропустить самые красивые сезонные явления Крыма:
-• Цветение лаванды, сакуры, маков 🌸
-• Удивительные закаты и рассветы 🌅
-• Сбор урожая черешни, винограда 🍇
-• Встречи с дельфинами 🐬
-• И многое другое...
+Я помогу вам <b>не пропустить</b> самые красивые сезонные явления Крыма.
 
-*Как пользоваться ботом:*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📌 `/follow <slug>` — подписаться на явление
-   Пример: `/follow lavanda-turgenevka`
+<b>📌 Как пользоваться ботом:</b>
 
-🔕 `/unfollow <slug>` — отписаться от явления
+▪️ <b>/follow</b> <i>&lt;slug&gt;</i> — подписаться на явление
+   <i>Пример: /follow lavanda-turgenevka</i>
 
-📋 `/mine` — показать все мои подписки
+▪️ <b>/unfollow</b> <i>&lt;slug&gt;</i> — отписаться от явления
 
-🔍 `/search <текст>` — найти явление по названию
+▪️ <b>/mine</b> — показать все мои подписки
 
-📊 `/today` — что происходит сегодня
+▪️ <b>/search</b> <i>&lt;текст&gt;</i> — найти явление по названию
 
-📅 `/week` — события на неделю
+▪️ <b>/today</b> — что происходит сегодня
 
-❓ `/help` — эта справка
+▪️ <b>/week</b> — события на неделю
 
-*Активные подписки:* вы будете получать уведомления:
-• Когда явление вот-вот начнётся
-• Когда наступит пик
-• Когда явление завершится
-• Напоминания за 3 дня до пика
+▪️ <b>/help</b> — эта справка
 
-Начните с `/follow` и выберите явление! ✨
-"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>🌟 Начните с /follow и выберите явление!</b>"""
     
-    await message.answer(
-        welcome_text,
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=get_main_keyboard()
-    )
+    await message.answer(text, parse_mode=ParseMode.HTML, reply_markup=get_main_keyboard())
 
 
 @dp.message(Command("help"))
 async def cmd_help(message: Message) -> None:
-    """Обработчик команды /help."""
-    help_text = """\
-❓ *Помощь по командам*
+    """Справка."""
+    text = """<b>❓ ПОМОЩЬ ПО КОМАНДАМ</b>
 
-*Управление подписками:*
-/follow `<slug>` — подписаться
-/unfollow `<slug>` — отписаться
-/mine — мои подписки
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-*Поиск и информация:*
-/search `<текст>` — найти явление
-/today — что происходит сегодня
-/week — события на неделю
+<b>📋 Управление подписками:</b>
 
-*Популярные slug-и:*
-• `lavanda-turgenevka` — Лаванда в Тургеневке
-• `sakura-nikitsky` — Сакура в НБС
-• `maki-koktebel` — Маки в Коктебеле
-• `glycine-alupka` — Глициния в Алупке
-• `piony-nbs` — Пионы в НБС
-• `podsnezhniki-laspi` — Подснежники в Ласпи
-• `zakat-fiorent` — Закаты на Фиоленте
-• `cherry-kerch` — Черешня в Керчи
-• `delfiny-sudak` — Дельфины в Судаке
+▪️ <b>/follow</b> <i>&lt;slug&gt;</i> — подписаться
+▪️ <b>/unfollow</b> <i>&lt;slug&gt;</i> — отписаться
+▪️ <b>/mine</b> — мои подписки
 
-Больше явлений можно найти на сайте: https://tsvetashki.ru
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-*Вопросы или предложения?*
-Напишите нам: @tsvetashki_support
+<b>🔍 Поиск и информация:</b>
 
-*Вернуться к началу:* /start
-"""
+▪️ <b>/search</b> <i>&lt;текст&gt;</i> — найти явление
+▪️ <b>/today</b> — что происходит сегодня
+▪️ <b>/week</b> — события на неделю
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>🌟 Популярные slug-и:</b>
+
+🌺 <b>lavanda-turgenevka</b> — Лаванда в Тургеневке
+🌸 <b>sakura-nikitsky</b> — Сакура в НБС
+❤️ <b>maki-koktebel</b> — Маки в Коктебеле
+💜 <b>glycine-alupka</b> — Глициния в Алупке
+🌿 <b>piony-nbs</b> — Пионы в НБС
+❄️ <b>podsnezhniki-laspi</b> — Подснежники в Ласпи
+🌅 <b>zakat-fiorent</b> — Закаты на Фиоленте
+🍒 <b>cherry-kerch</b> — Черешня в Керчи
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+<i>Вернуться к началу: /start</i>"""
     
-    await message.answer(
-        help_text,
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=get_main_keyboard()
-    )
+    await message.answer(text, parse_mode=ParseMode.HTML)
 
 
 @dp.message(Command("follow"))
 async def cmd_follow(message: Message, command: CommandObject) -> None:
-    """Обработчик команды /follow."""
+    """Подписка на явление."""
     slug = command.args.strip() if command and command.args else None
     
     if not slug:
-        await message.answer(
-            "🌸 *Как подписаться:*\n\n"
-            "Используйте команду: `/follow <slug>`\n\n"
-            "Например: `/follow lavanda-turgenevka`\n\n"
-            "Чтобы узнать slug явления, введите `/search` или посмотрите `/help`",
-            parse_mode=ParseMode.MARKDOWN
-        )
+        text = """<b>🌸 Как подписаться:</b>
+
+Используйте команду:
+<b>/follow</b> <i>&lt;slug&gt;</i>
+
+<i>Пример: /follow lavanda-turgenevka</i>
+
+💡 Чтобы узнать slug явления, введите /search или /help"""
+        
+        await message.answer(text, parse_mode=ParseMode.HTML)
         return
     
     db = SessionLocal()
     try:
-        # Ищем явление по slug
         phenomenon = db.scalars(
             select(Phenomenon).where(Phenomenon.slug == slug)
         ).first()
         
         if not phenomenon:
-            # Поиск похожих
             similar = db.scalars(
                 select(Phenomenon)
                 .where(Phenomenon.name.ilike(f"%{slug}%"))
@@ -538,24 +426,26 @@ async def cmd_follow(message: Message, command: CommandObject) -> None:
             ).all()
             
             if similar:
-                similar_list = "\n".join([f"• `{ph.slug}` — {ph.name}" for ph in similar])
-                await message.answer(
-                    f"❌ *Явление не найдено*\n\n"
-                    f"По вашему запросу `{slug}` ничего не найдено.\n\n"
-                    f"*Возможно, вы искали:*\n{similar_list}\n\n"
-                    f"Используйте один из этих slug-ов в команде `/follow`",
-                    parse_mode=ParseMode.MARKDOWN
-                )
+                similar_list = "\n".join([f"▪️ <code>{ph.slug}</code> — {escape_html(ph.name)}" for ph in similar])
+                text = f"""<b>❌ Явление не найдено</b>
+
+По запросу <code>{escape_html(slug)}</code> ничего не найдено.
+
+<b>🔍 Возможно, вы искали:</b>
+{similar_list}
+
+💡 Используйте: /follow &lt;slug&gt;"""
             else:
-                await message.answer(
-                    f"❌ *Явление не найдено*\n\n"
-                    f"Slug `{slug}` не существует.\n\n"
-                    f"Введите `/help` чтобы увидеть список популярных slug-ов",
-                    parse_mode=ParseMode.MARKDOWN
-                )
+                text = f"""<b>❌ Явление не найдено</b>
+
+Slug <code>{escape_html(slug)}</code> не существует.
+
+💡 Введите /help чтобы увидеть список популярных slug-ов"""
+            
+            await message.answer(text, parse_mode=ParseMode.HTML)
             return
         
-        # Проверяем, не подписан ли уже
+        # Проверяем существующую подписку
         existing = db.scalar(
             select(TelegramWatch).where(
                 TelegramWatch.chat_id == message.chat.id,
@@ -564,13 +454,13 @@ async def cmd_follow(message: Message, command: CommandObject) -> None:
         )
         
         if existing:
-            emoji = get_kind_emoji(phenomenon.kind)
-            await message.answer(
-                f"{emoji} *Вы уже подписаны*\n\n"
-                f"Вы уже получаете уведомления о явлении *{phenomenon.name}*.\n\n"
-                f"Чтобы отписаться, используйте `/unfollow {phenomenon.slug}`",
-                parse_mode=ParseMode.MARKDOWN
-            )
+            text = f"""<b>⚠️ Вы уже подписаны</b>
+
+Вы уже получаете уведомления о явлении <b>{escape_html(phenomenon.name)}</b>.
+
+🔕 Чтобы отписаться: /unfollow {phenomenon.slug}"""
+            
+            await message.answer(text, parse_mode=ParseMode.HTML)
             return
         
         # Создаём подписку
@@ -593,40 +483,38 @@ async def cmd_follow(message: Message, command: CommandObject) -> None:
         )
         
         emoji = get_kind_emoji(phenomenon.kind)
-        response = f"""\
-{emoji} *УСПЕШНО ПОДПИСАНА!* {emoji}
+        response = f"""<b>{emoji} УСПЕШНО ПОДПИСАНА! {emoji}</b>
 
-Вы подписались на *{phenomenon.name}*
+Вы подписались на <b>{escape_html(phenomenon.name)}</b>
 
-📌 *Slug:* `{phenomenon.slug}`
+📌 <b>Slug:</b> <code>{phenomenon.slug}</code>
 
-"""
-        
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
+
         if event:
             status = marker_status(today, event.start_date, event.end_date)
             if status == "active":
-                response += f"🔴 *Прямо сейчас* это явление *активно*! Не пропустите!"
+                response += f"\n\n🔴 <b>Прямо сейчас</b> это явление <b>активно</b>! Не пропустите!"
             elif status == "soon":
                 days = (event.start_date - today).days
-                response += f"🟡 *Начинается через {days} дней* — скоро вы получите уведомление!"
+                response += f"\n\n🟡 <b>Начинается через {days} дней</b> — скоро вы получите уведомление!"
             elif status == "future":
-                response += f"⚪ *Запланировано* на {event.start_date.strftime('%d.%m.%Y')}"
+                response += f"\n\n⚪ <b>Запланировано</b> на {event.start_date.strftime('%d.%m.%Y')}"
             else:
-                response += f"📅 Следите за обновлениями"
+                response += f"\n\n📅 Следите за обновлениями"
         else:
-            response += f"📅 Уведомления придут, когда появятся новые даты события"
+            response += f"\n\n📅 Уведомления придут, когда появятся новые даты"
         
-        response += f"\n\nУправлять подписками: `/mine`"
+        response += f"\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n<i>Управлять подписками: /mine</i>"
         
-        await message.answer(response, parse_mode=ParseMode.MARKDOWN)
+        await message.answer(response, parse_mode=ParseMode.HTML)
         log.info(f"Пользователь {message.chat.id} подписался на {phenomenon.slug}")
         
     except Exception as e:
         log.exception(f"Ошибка при подписке: {e}")
         await message.answer(
-            "❌ *Произошла ошибка*\n\n"
-            "Не удалось оформить подписку. Попробуйте позже.",
-            parse_mode=ParseMode.MARKDOWN
+            "<b>❌ Произошла ошибка</b>\n\nНе удалось оформить подписку. Попробуйте позже.",
+            parse_mode=ParseMode.HTML
         )
         db.rollback()
     finally:
@@ -635,17 +523,20 @@ async def cmd_follow(message: Message, command: CommandObject) -> None:
 
 @dp.message(Command("unfollow"))
 async def cmd_unfollow(message: Message, command: CommandObject) -> None:
-    """Обработчик команды /unfollow."""
+    """Отписка от явления."""
     slug = command.args.strip() if command and command.args else None
     
     if not slug:
-        await message.answer(
-            "🔕 *Как отписаться:*\n\n"
-            "Используйте команду: `/unfollow <slug>`\n\n"
-            "Например: `/unfollow lavanda-turgenevka`\n\n"
-            "Чтобы увидеть ваши подписки, введите `/mine`",
-            parse_mode=ParseMode.MARKDOWN
-        )
+        text = """<b>🔕 Как отписаться:</b>
+
+Используйте команду:
+<b>/unfollow</b> <i>&lt;slug&gt;</i>
+
+<i>Пример: /unfollow lavanda-turgenevka</i>
+
+💡 Чтобы увидеть ваши подписки: /mine"""
+        
+        await message.answer(text, parse_mode=ParseMode.HTML)
         return
     
     db = SessionLocal()
@@ -655,12 +546,13 @@ async def cmd_unfollow(message: Message, command: CommandObject) -> None:
         ).first()
         
         if not phenomenon:
-            await message.answer(
-                f"❌ *Явление не найдено*\n\n"
-                f"Slug `{slug}` не существует.\n\n"
-                f"Проверьте правильность написания.",
-                parse_mode=ParseMode.MARKDOWN
-            )
+            text = f"""<b>❌ Явление не найдено</b>
+
+Slug <code>{escape_html(slug)}</code> не существует.
+
+💡 Проверьте правильность написания."""
+            
+            await message.answer(text, parse_mode=ParseMode.HTML)
             return
         
         # Удаляем подписку
@@ -673,32 +565,32 @@ async def cmd_unfollow(message: Message, command: CommandObject) -> None:
         watch = result.scalar_one_or_none()
         
         if not watch:
-            await message.answer(
-                f"❌ *Вы не подписаны*\n\n"
-                f"Вы не подписаны на явление *{phenomenon.name}*.\n\n"
-                f"Подписаться: `/follow {slug}`",
-                parse_mode=ParseMode.MARKDOWN
-            )
+            text = f"""<b>❌ Вы не подписаны</b>
+
+Вы не подписаны на явление <b>{escape_html(phenomenon.name)}</b>.
+
+💡 Подписаться: /follow {slug}"""
+            
+            await message.answer(text, parse_mode=ParseMode.HTML)
             return
         
         db.delete(watch)
         db.commit()
         
         emoji = get_kind_emoji(phenomenon.kind)
-        await message.answer(
-            f"{emoji} *Вы отписались* {emoji}\n\n"
-            f"Вы больше не будете получать уведомления о явлении *{phenomenon.name}*.\n\n"
-            f"Чтобы подписаться снова: `/follow {slug}`",
-            parse_mode=ParseMode.MARKDOWN
-        )
-        log.info(f"Пользователь {message.chat.id} отписался от {phenomenon.slug}")
+        text = f"""<b>{emoji} ВЫ ОТПИСАЛИСЬ {emoji}</b>
+
+Вы больше не будете получать уведомления о явлении <b>{escape_html(phenomenon.name)}</b>.
+
+💡 Чтобы подписаться снова: /follow {slug}"""
+        
+        await message.answer(text, parse_mode=ParseMode.HTML)
         
     except Exception as e:
         log.exception(f"Ошибка при отписке: {e}")
         await message.answer(
-            "❌ *Произошла ошибка*\n\n"
-            "Не удалось отписаться. Попробуйте позже.",
-            parse_mode=ParseMode.MARKDOWN
+            "<b>❌ Произошла ошибка</b>\n\nНе удалось отписаться. Попробуйте позже.",
+            parse_mode=ParseMode.HTML
         )
         db.rollback()
     finally:
@@ -707,7 +599,7 @@ async def cmd_unfollow(message: Message, command: CommandObject) -> None:
 
 @dp.message(Command("mine"))
 async def cmd_mine(message: Message) -> None:
-    """Обработчик команды /mine — показывает подписки пользователя."""
+    """Показывает подписки пользователя."""
     db = SessionLocal()
     today = date.today()
     
@@ -718,26 +610,29 @@ async def cmd_mine(message: Message) -> None:
         ).all()
         
         if not watches:
-            await message.answer(
-                "📭 *У вас пока нет подписок*\n\n"
-                "Чтобы подписаться на явление, используйте команду:\n"
-                "`/follow <slug>`\n\n"
-                "Например: `/follow lavanda-turgenevka`\n\n"
-                "Список популярных явлений: `/help`",
-                parse_mode=ParseMode.MARKDOWN,
-                reply_markup=get_main_keyboard()
-            )
+            text = """<b>📭 У вас пока нет подписок</b>
+
+Чтобы подписаться на явление, используйте команду:
+<b>/follow</b> <i>&lt;slug&gt;</i>
+
+<i>Пример: /follow lavanda-turgenevka</i>
+
+💡 Список популярных явлений: /help"""
+            
+            await message.answer(text, parse_mode=ParseMode.HTML)
             return
         
-        # Получаем явления с актуальными событиями
         phenomenon_ids = [w.phenomenon_id for w in watches]
         phenomena = db.scalars(
             select(Phenomenon)
             .where(Phenomenon.id.in_(phenomenon_ids))
         ).all()
         
-        # Получаем события для каждого явления
-        subscriptions_info = []
+        # Сортируем по названию
+        phenomena = sorted(phenomena, key=lambda x: x.name)
+        
+        response = "<b>📋 МОИ ПОДПИСКИ</b>\n\n"
+        
         for ph in phenomena:
             event = db.scalar(
                 select(Event)
@@ -748,73 +643,36 @@ async def cmd_mine(message: Message) -> None:
                 .order_by(Event.start_date)
             )
             
-            status = None
+            emoji = get_kind_emoji(ph.kind)
+            response += f"{emoji} <b>{escape_html(ph.name)}</b>\n"
+            response += f"   📌 <code>{ph.slug}</code>\n"
+            
             if event:
                 status = marker_status(today, event.start_date, event.end_date)
-            
-            subscriptions_info.append((ph, event, status))
-        
-        # Сортируем: активные → скоро → будущие → завершённые
-        def sort_key(item):
-            status = item[2]
-            if status == "active":
-                return 0
-            elif status == "soon":
-                return 1
-            elif status == "future":
-                return 2
-            else:
-                return 3
-        
-        subscriptions_info.sort(key=sort_key)
-        
-        # Формируем красивое сообщение
-        message_text = "📋 *Мои подписки*\n\n"
-        
-        status_icons = {
-            "active": "🔴",
-            "soon": "🟡",
-            "future": "⚪",
-            "ended": "✅"
-        }
-        
-        for ph, event, status in subscriptions_info:
-            emoji = get_kind_emoji(ph.kind)
-            status_icon = status_icons.get(status, "📌")
-            
-            message_text += f"{emoji} *{ph.name}*\n"
-            message_text += f"   📌 Slug: `{ph.slug}`\n"
-            
-            if event:
                 if status == "active":
-                    message_text += f"   {status_icon} *ИДЁТ СЕЙЧАС!*\n"
+                    response += f"   🔴 <b>ИДЁТ СЕЙЧАС!</b>\n"
                 elif status == "soon":
                     days = (event.start_date - today).days
-                    message_text += f"   {status_icon} Начнётся *через {days} дней*\n"
+                    response += f"   🟡 Начнётся <b>через {days} дней</b>\n"
                 elif status == "future":
-                    message_text += f"   {status_icon} Начало: {event.start_date.strftime('%d.%m.%Y')}\n"
+                    response += f"   ⚪ Начало: {event.start_date.strftime('%d.%m.%Y')}\n"
                 else:
-                    message_text += f"   {status_icon} Завершено: {event.end_date.strftime('%d.%m.%Y')}\n"
+                    response += f"   ✅ Завершено: {event.end_date.strftime('%d.%m.%Y')}\n"
             else:
-                message_text += f"   ⏳ Ожидание новых дат\n"
+                response += f"   ⏳ Ожидание новых дат\n"
             
-            message_text += f"   🔕 `/unfollow {ph.slug}`\n\n"
+            response += f"   🔕 /unfollow {ph.slug}\n\n"
         
-        message_text += "---\n"
-        message_text += "Чтобы отписаться, используйте `/unfollow <slug>`"
+        response += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        response += "<i>Чтобы отписаться: /unfollow &lt;slug&gt;</i>"
         
-        await message.answer(
-            message_text,
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=get_main_keyboard()
-        )
+        await message.answer(response, parse_mode=ParseMode.HTML)
         
     except Exception as e:
         log.exception(f"Ошибка при получении подписок: {e}")
         await message.answer(
-            "❌ *Произошла ошибка*\n\n"
-            "Не удалось загрузить ваши подписки.",
-            parse_mode=ParseMode.MARKDOWN
+            "<b>❌ Произошла ошибка</b>\n\nНе удалось загрузить ваши подписки.",
+            parse_mode=ParseMode.HTML
         )
     finally:
         db.close()
@@ -822,7 +680,7 @@ async def cmd_mine(message: Message) -> None:
 
 @dp.message(Command("today"))
 async def cmd_today(message: Message) -> None:
-    """Показывает события, которые происходят сегодня."""
+    """Показывает события на сегодня."""
     db = SessionLocal()
     today = date.today()
     
@@ -838,36 +696,37 @@ async def cmd_today(message: Message) -> None:
         ).unique().all()
         
         if not events:
-            await message.answer(
-                "📅 *Сегодня нет активных явлений*\n\n"
-                "Но вы можете посмотреть, что будет скоро: `/week`\n\n"
-                "Или вернуться к началу: `/start`",
-                parse_mode=ParseMode.MARKDOWN
-            )
+            text = """<b>📅 Сегодня нет активных явлений</b>
+
+Но вы можете посмотреть, что будет скоро: /week
+
+💡 Вернуться к началу: /start"""
+            
+            await message.answer(text, parse_mode=ParseMode.HTML)
             return
         
-        response = "🔴 *АКТИВНО СЕГОДНЯ* 🔴\n\n"
+        response = "<b>🔴 АКТИВНО СЕГОДНЯ 🔴</b>\n\n"
         
         for event in events:
             ph = event.phenomenon
             pl = event.place
             emoji = get_kind_emoji(ph.kind)
             
-            response += f"{emoji} *{ph.name}*\n"
-            response += f"   📍 {pl.name}\n"
+            response += f"{emoji} <b>{escape_html(ph.name)}</b>\n"
+            response += f"   📍 {escape_html(pl.name)}\n"
             response += f"   🎯 Пик: {event.peak_date.strftime('%d.%m.%Y')}\n"
-            response += f"   🔗 `/follow {ph.slug}`\n\n"
+            response += f"   🔗 /follow {ph.slug}\n\n"
         
-        response += "\n---\nДля справки: `/help`"
+        response += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        response += "<i>Для справки: /help</i>"
         
-        await message.answer(response, parse_mode=ParseMode.MARKDOWN)
+        await message.answer(response, parse_mode=ParseMode.HTML)
         
     except Exception as e:
         log.exception(f"Ошибка в /today: {e}")
         await message.answer(
-            "❌ *Произошла ошибка*\n\n"
-            "Попробуйте позже или введите `/help`",
-            parse_mode=ParseMode.MARKDOWN
+            "<b>❌ Произошла ошибка</b>\n\nПопробуйте позже или введите /help",
+            parse_mode=ParseMode.HTML
         )
     finally:
         db.close()
@@ -875,7 +734,7 @@ async def cmd_today(message: Message) -> None:
 
 @dp.message(Command("week"))
 async def cmd_week(message: Message) -> None:
-    """Показывает события на ближайшую неделю."""
+    """Показывает события на неделю."""
     db = SessionLocal()
     today = date.today()
     next_week = today + timedelta(days=7)
@@ -892,15 +751,16 @@ async def cmd_week(message: Message) -> None:
         ).unique().all()
         
         if not events:
-            await message.answer(
-                "📅 *На следующей неделе нет запланированных явлений*\n\n"
-                "Попробуйте поискать: `/search`\n\n"
-                "Или вернуться к началу: `/start`",
-                parse_mode=ParseMode.MARKDOWN
-            )
+            text = """<b>📅 На следующей неделе нет запланированных явлений</b>
+
+Попробуйте поискать: /search
+
+💡 Вернуться к началу: /start"""
+            
+            await message.answer(text, parse_mode=ParseMode.HTML)
             return
         
-        response = "📅 *СОБЫТИЯ НА НЕДЕЛЮ* 📅\n\n"
+        response = "<b>📆 СОБЫТИЯ НА НЕДЕЛЮ</b>\n\n"
         
         for event in events:
             ph = event.phenomenon
@@ -915,21 +775,21 @@ async def cmd_week(message: Message) -> None:
             else:
                 day_str = f"через {days} дней"
             
-            response += f"{emoji} *{ph.name}*\n"
-            response += f"   📍 {pl.name}\n"
-            response += f"   📅 Начало: {day_str}\n"
-            response += f"   🔗 `/follow {ph.slug}`\n\n"
+            response += f"{emoji} <b>{escape_html(ph.name)}</b>\n"
+            response += f"   📍 {escape_html(pl.name)}\n"
+            response += f"   📅 Начало: <b>{day_str}</b>\n"
+            response += f"   🔗 /follow {ph.slug}\n\n"
         
-        response += "\n---\nДля справки: `/help`"
+        response += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        response += "<i>Для справки: /help</i>"
         
-        await message.answer(response, parse_mode=ParseMode.MARKDOWN)
+        await message.answer(response, parse_mode=ParseMode.HTML)
         
     except Exception as e:
         log.exception(f"Ошибка в /week: {e}")
         await message.answer(
-            "❌ *Произошла ошибка*\n\n"
-            "Попробуйте позже или введите `/help`",
-            parse_mode=ParseMode.MARKDOWN
+            "<b>❌ Произошла ошибка</b>\n\nПопробуйте позже или введите /help",
+            parse_mode=ParseMode.HTML
         )
     finally:
         db.close()
@@ -937,17 +797,19 @@ async def cmd_week(message: Message) -> None:
 
 @dp.message(Command("search"))
 async def cmd_search(message: Message, command: CommandObject) -> None:
-    """Поиск явлений по названию."""
+    """Поиск явлений."""
     query = command.args.strip() if command and command.args else None
     
     if not query:
-        await message.answer(
-            "🔍 *Как искать:*\n\n"
-            "Введите: `/search <текст>`\n\n"
-            "Например: `/search лаванда` или `/search маки`\n\n"
-            "Или вернуться к началу: `/start`",
-            parse_mode=ParseMode.MARKDOWN
-        )
+        text = """<b>🔍 Как искать:</b>
+
+Введите: <b>/search</b> <i>&lt;текст&gt;</i>
+
+<i>Пример: /search лаванда</i> или <i>/search маки</i>
+
+💡 Вернуться к началу: /start"""
+        
+        await message.answer(text, parse_mode=ParseMode.HTML)
         return
     
     db = SessionLocal()
@@ -966,156 +828,138 @@ async def cmd_search(message: Message, command: CommandObject) -> None:
         ).all()
         
         if not phenomena:
-            await message.answer(
-                f"❌ *Ничего не найдено*\n\n"
-                f"По запросу `{query}` ничего не найдено.\n\n"
-                f"Попробуйте другое ключевое слово или посмотрите `/help`\n\n"
-                f"Вернуться к началу: `/start`",
-                parse_mode=ParseMode.MARKDOWN
-            )
+            text = f"""<b>❌ Ничего не найдено</b>
+
+По запросу "<i>{escape_html(query)}</i>" ничего не найдено.
+
+💡 Попробуйте другое ключевое слово или посмотрите /help
+
+Вернуться к началу: /start"""
+            
+            await message.answer(text, parse_mode=ParseMode.HTML)
             return
         
-        response = f"🔍 *Результаты поиска:* `{query}`\n\n"
+        response = f"<b>🔍 РЕЗУЛЬТАТЫ ПОИСКА:</b> <i>{escape_html(query)}</i>\n\n"
         
         for ph in phenomena:
             emoji = get_kind_emoji(ph.kind)
-            response += f"{emoji} *{ph.name}*\n"
-            response += f"   📌 Slug: `{ph.slug}`\n"
+            response += f"{emoji} <b>{escape_html(ph.name)}</b>\n"
+            response += f"   📌 <code>{ph.slug}</code>\n"
             response += f"   📂 Тип: {ph.kind}\n"
             if ph.description:
-                desc = ph.description[:80] + "..." if len(ph.description) > 80 else ph.description
+                desc = escape_html(ph.description[:80])
+                if len(ph.description) > 80:
+                    desc += "..."
                 response += f"   📝 {desc}\n"
-            response += f"   🔗 `/follow {ph.slug}`\n\n"
+            response += f"   🔗 /follow {ph.slug}\n\n"
         
-        response += "---\nДля справки: `/help`"
+        response += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        response += "<i>Для справки: /help</i>"
         
-        await message.answer(response, parse_mode=ParseMode.MARKDOWN)
+        await message.answer(response, parse_mode=ParseMode.HTML)
         
     except Exception as e:
         log.exception(f"Ошибка в /search: {e}")
         await message.answer(
-            "❌ *Произошла ошибка*\n\n"
-            "Попробуйте позже или введите `/help`",
-            parse_mode=ParseMode.MARKDOWN
+            "<b>❌ Произошла ошибка</b>\n\nПопробуйте позже или введите /help",
+            parse_mode=ParseMode.HTML
         )
     finally:
         db.close()
 
 
-# --- Обработчики кнопок и текстовых сообщений ---
+@dp.message(Command("about"))
+async def cmd_about(message: Message) -> None:
+    """О боте."""
+    text = """<b>ℹ️ О БОТЕ</b>
 
-@dp.callback_query(lambda c: c.data.startswith("unsubscribe_"))
-async def process_unsubscribe_callback(callback: CallbackQuery) -> None:
-    """Обработчик нажатия кнопки "Отписаться"."""
-    phenomenon_id = int(callback.data.split("_")[1])
+<b>🌸 Цветашки Крым</b> — ваш помощник в отслеживании сезонных явлений Крыма.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>🌟 Возможности:</b>
+
+▪️ Подписка на любимые явления
+▪️ Автоматические уведомления о начале
+▪️ Напоминания о пике сезона
+▪️ Поиск по всем явлениям
+▪️ Информация о датах и местах
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>📊 Статистика:</b>
+• Активных явлений: много
+• Довольных подписчиков: вы
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+<b>📞 Контакты:</b>
+• GitHub: @videmyy
+• Email: videmyy@gmail.com
+
+<i>Вернуться к началу: /start</i>"""
     
-    db = SessionLocal()
-    try:
-        phenomenon = db.get(Phenomenon, phenomenon_id)
-        
-        if not phenomenon:
-            await callback.answer("Явление не найдено", show_alert=True)
-            return
-        
-        # Удаляем подписку
-        result = db.execute(
-            select(TelegramWatch).where(
-                TelegramWatch.chat_id == callback.message.chat.id,
-                TelegramWatch.phenomenon_id == phenomenon_id
-            )
-        )
-        watch = result.scalar_one_or_none()
-        
-        if watch:
-            db.delete(watch)
-            db.commit()
-            emoji = get_kind_emoji(phenomenon.kind)
-            await callback.message.edit_text(
-                f"{emoji} *Вы отписались* {emoji}\n\n"
-                f"Вы больше не будете получать уведомления о явлении *{phenomenon.name}*.\n\n"
-                f"Чтобы подписаться снова: `/follow {phenomenon.slug}`",
-                parse_mode=ParseMode.MARKDOWN
-            )
-            await callback.answer("Вы отписались от уведомлений")
-        else:
-            await callback.answer("Вы не были подписаны", show_alert=True)
-            
-    except Exception as e:
-        log.exception(f"Ошибка при отписке по callback: {e}")
-        await callback.answer("Произошла ошибка", show_alert=True)
-        db.rollback()
-    finally:
-        db.close()
+    await message.answer(text, parse_mode=ParseMode.HTML)
 
 
-@dp.callback_query(lambda c: c.data.startswith("show_map_"))
-async def process_map_callback(callback: CallbackQuery) -> None:
-    """Обработчик кнопки "Показать на карте"."""
-    place_id = int(callback.data.split("_")[2])
-    
-    db = SessionLocal()
-    try:
-        place = db.get(Place, place_id)
-        
-        if place:
-            # Создаём ссылку на карту
-            maps_url = f"https://www.openstreetmap.org/?mlat={place.latitude}&mlon={place.longitude}#map=15/{place.latitude}/{place.longitude}"
-            
-            await callback.message.answer(
-                f"📍 *{place.name}*\n\n"
-                f"🗺 [Открыть на карте]({maps_url})\n"
-                f"📌 Координаты: {place.latitude}, {place.longitude}",
-                parse_mode=ParseMode.MARKDOWN,
-                disable_web_page_preview=True
-            )
-            await callback.answer()
-        else:
-            await callback.answer("Место не найдено", show_alert=True)
-            
-    finally:
-        db.close()
-
+# ==================== КНОПКИ ====================
 
 @dp.message(F.text == "📋 Мои подписки")
 async def handle_my_subscriptions_button(message: Message) -> None:
-    """Обработчик кнопки моих подписок."""
+    """Кнопка моих подписок."""
     await cmd_mine(message)
 
 
 @dp.message(F.text == "🔍 Найти явление")
 async def handle_search_button(message: Message) -> None:
-    """Обработчик кнопки поиска."""
+    """Кнопка поиска."""
     await message.answer(
-        "🔍 *Поиск явлений*\n\n"
-        "Введите ключевое слово для поиска:\n"
-        "`/search лаванда`\n\n"
-        "Или посмотрите список в `/help`",
-        parse_mode=ParseMode.MARKDOWN
+        "<b>🔍 Поиск явлений</b>\n\nВведите ключевое слово для поиска:\n<code>/search лаванда</code>\n\nИли посмотрите список в /help",
+        parse_mode=ParseMode.HTML
     )
+
+
+@dp.message(F.text == "📅 Что сегодня")
+async def handle_today_button(message: Message) -> None:
+    """Кнопка \"Что сегодня\"."""
+    await cmd_today(message)
+
+
+@dp.message(F.text == "📆 Что на неделе")
+async def handle_week_button(message: Message) -> None:
+    """Кнопка \"Что на неделе\"."""
+    await cmd_week(message)
 
 
 @dp.message(F.text == "❓ Помощь")
 async def handle_help_button(message: Message) -> None:
-    """Обработчик кнопки помощи."""
+    """Кнопка помощи."""
     await cmd_help(message)
 
 
-# --- Фоновая задача для рассылок ---
+@dp.message(F.text == "ℹ️ О боте")
+async def handle_about_button(message: Message) -> None:
+    """Кнопка \"О боте\"."""
+    await cmd_about(message)
+
+
+# ==================== ФОНОВАЯ ЗАДАЧА ====================
 
 async def run_notification_worker():
-    """Фоновый процесс для периодической проверки и отправки уведомлений."""
+    """Фоновый процесс для уведомлений."""
     log.info("Запуск сервиса уведомлений")
     
     while True:
         try:
-            # Проверяем каждые 6 часов
-            await asyncio.sleep(6 * 60 * 60)
+            await asyncio.sleep(6 * 60 * 60)  # 6 часов
             await notification_service.check_and_notify()
             log.info("Цикл уведомлений выполнен")
         except Exception as e:
             log.exception(f"Ошибка в цикле уведомлений: {e}")
-            await asyncio.sleep(60)  # При ошибке ждём минуту и пробуем снова
+            await asyncio.sleep(60)
 
+
+# ==================== ЗАПУСК ====================
 
 async def main() -> None:
     """Главная функция запуска бота."""
@@ -1129,7 +973,7 @@ async def main() -> None:
     log.info("🚀 Запуск Telegram-бота Цветашки Крым")
     log.info(f"Бот @{(await bot.get_me()).username}")
     
-    # Запускаем фоновую задачу для уведомлений
+    # Запускаем фоновую задачу
     asyncio.create_task(run_notification_worker())
     
     # Запускаем поллинг
