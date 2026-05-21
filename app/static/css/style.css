@@ -1,9 +1,0 @@
-body { margin: 0; padding: 0; }
-.tab-content { padding: 1rem; }
-.card {
-    background: white;
-    border-radius: 16px;
-    padding: 1.5rem;
-    margin: 1rem 0;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}

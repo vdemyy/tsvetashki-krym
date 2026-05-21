@@ -5,7 +5,7 @@ import os
 from datetime import date
 from typing import Any
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import delete, func, select
@@ -73,13 +73,28 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/phenomena", response_class=HTMLResponse)
-async def list_phenomena(request: Request, db: Session = Depends(get_db)):
+async def list_phenomena(
+    request: Request,
+    db: Session = Depends(get_db),
+    sort: str = Query("id", regex="^(id|name|slug|kind)$"),
+):
     redir = _check(request)
     if redir:
         return redir
-    rows = db.scalars(select(Phenomenon).order_by(Phenomenon.id)).all()
+    
+    stmt = select(Phenomenon)
+    if sort == "name":
+        stmt = stmt.order_by(Phenomenon.name)
+    elif sort == "slug":
+        stmt = stmt.order_by(Phenomenon.slug)
+    elif sort == "kind":
+        stmt = stmt.order_by(Phenomenon.kind, Phenomenon.name)
+    else:
+        stmt = stmt.order_by(Phenomenon.id)
+    
+    rows = db.scalars(stmt).all()
     return templates.TemplateResponse(
-        request, "admin/phenomena_list.html", {"title": "Явления", "rows": rows}
+        request, "admin/phenomena_list.html", {"title": "Явления", "rows": rows, "sort": sort}
     )
 
 
@@ -215,13 +230,26 @@ async def delete_phenomenon(request: Request, pid: int, db: Session = Depends(ge
 
 
 @router.get("/places", response_class=HTMLResponse)
-async def list_places(request: Request, db: Session = Depends(get_db)):
+async def list_places(
+    request: Request,
+    db: Session = Depends(get_db),
+    sort: str = Query("id", regex="^(id|name|region)$"),
+):
     redir = _check(request)
     if redir:
         return redir
-    rows = db.scalars(select(Place).order_by(Place.id)).all()
+    
+    stmt = select(Place)
+    if sort == "name":
+        stmt = stmt.order_by(Place.name)
+    elif sort == "region":
+        stmt = stmt.order_by(Place.region, Place.subregion, Place.name)
+    else:
+        stmt = stmt.order_by(Place.id)
+    
+    rows = db.scalars(stmt).all()
     return templates.TemplateResponse(
-        request, "admin/places_list.html", {"title": "Места", "rows": rows}
+        request, "admin/places_list.html", {"title": "Места", "rows": rows, "sort": sort}
     )
 
 
@@ -328,7 +356,11 @@ def _parse_json_list(raw: str) -> list[dict[str, Any]] | None:
 
 
 @router.get("/events", response_class=HTMLResponse)
-async def list_events_admin(request: Request, db: Session = Depends(get_db)):
+async def list_events_admin(
+    request: Request,
+    db: Session = Depends(get_db),
+    sort: str = Query("start_desc", regex="^(id|start_desc|start_asc|phenomenon|place)$"),
+):
     redir = _check(request)
     if redir:
         return redir
@@ -337,8 +369,19 @@ async def list_events_admin(request: Request, db: Session = Depends(get_db)):
     stmt = (
         select(Event)
         .options(joinedload(Event.phenomenon), joinedload(Event.place))
-        .order_by(Event.start_date.desc())
     )
+    
+    if sort == "start_asc":
+        stmt = stmt.order_by(Event.start_date.asc())
+    elif sort == "phenomenon":
+        stmt = stmt.join(Event.phenomenon).order_by(Phenomenon.name, Event.start_date.desc())
+    elif sort == "place":
+        stmt = stmt.join(Event.place).order_by(Place.name, Event.start_date.desc())
+    elif sort == "id":
+        stmt = stmt.order_by(Event.id)
+    else:  # start_desc
+        stmt = stmt.order_by(Event.start_date.desc())
+    
     rows = db.scalars(stmt).unique().all()
     phenomena = db.scalars(select(Phenomenon).order_by(Phenomenon.name)).all()
     places = db.scalars(select(Place).order_by(Place.name)).all()
@@ -350,6 +393,7 @@ async def list_events_admin(request: Request, db: Session = Depends(get_db)):
             "rows": rows,
             "phenomena": phenomena,
             "places": places,
+            "sort": sort,
         },
     )
 

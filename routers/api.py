@@ -11,7 +11,7 @@ from database import get_db
 from models import Event, Phenomenon, Place, Subscription
 from services.forecast import forecast_from_history, marker_status
 from services.icon_map import lucide_icon_for_phenomenon
-from services.weather import rain_hint
+from services.weather import rain_hint, get_weather_details
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -20,6 +20,16 @@ def _serialize_event(e: Event, today: date) -> dict[str, Any]:
     ph = e.phenomenon
     pl = e.place
     fc = forecast_from_history(e.phase_history, today.year)
+    
+    # Перевод типа явления
+    kind_ru_map = {
+        "flowering": "Цветение",
+        "visual": "Визуальное",
+        "harvest": "Урожай",
+        "animals": "Животные",
+        "activity": "Событие",
+    }
+    
     return {
         "id": e.id,
         "start_date": e.start_date.isoformat(),
@@ -32,6 +42,7 @@ def _serialize_event(e: Event, today: date) -> dict[str, Any]:
             "slug": ph.slug,
             "name": ph.name,
             "kind": ph.kind,
+            "kind_ru": kind_ru_map.get(ph.kind, ph.kind),
             "category": ph.category,
             "icon_lucide": lucide_icon_for_phenomenon(ph),
             "main_photo_url": ph.main_photo_url or None,
@@ -237,10 +248,79 @@ async def filters_meta(db: Session = Depends(get_db)):
     }
 
 
+@router.get("/filters/subregions")
+async def subregions_by_region(region: str | None = None, db: Session = Depends(get_db)):
+    """Возвращает подрегионы для выбранного региона (или все, если регион не указан)."""
+    stmt = select(Place.subregion).distinct().where(Place.subregion.isnot(None))
+    if region:
+        stmt = stmt.where(Place.region == region)
+    subs = db.scalars(stmt).all()
+    return {"subregions": sorted([s for s in subs if s])}
+
+
 @router.get("/weather/hint")
 async def weather_hint(lat: float, lon: float):
     hint = await rain_hint(lat, lon)
-    return {"message": hint.message, "detail": hint.raw_summary}
+    details = await get_weather_details(lat, lon)
+    
+    weather_text = ""
+    if details:
+        parts = []
+        if details.temp_c is not None:
+            parts.append(f"{details.temp_c:.0f}°C")
+        if details.feels_like_c is not None and abs(details.feels_like_c - details.temp_c) > 1:
+            parts.append(f"ощущается как {details.feels_like_c:.0f}°C")
+        if details.humidity is not None:
+            parts.append(f"влажность {details.humidity}%")
+        if details.wind_speed_ms is not None:
+            parts.append(f"ветер {details.wind_speed_ms:.1f} м/с")
+        if details.weather_desc_ru:
+            parts.append(details.weather_desc_ru)
+        weather_text = " · ".join(parts)
+    
+    return {
+        "message": hint.message or weather_text,
+        "detail": hint.raw_summary,
+        "weather_details": {
+            "temp_c": details.temp_c if details else None,
+            "feels_like_c": details.feels_like_c if details else None,
+            "humidity": details.humidity if details else None,
+            "wind_speed_ms": details.wind_speed_ms if details else None,
+            "weather_desc_ru": details.weather_desc_ru if details else None,
+        } if details else None,
+    }
+
+
+@router.get("/sun-times")
+async def get_sun_times(lat: float, lon: float):
+    """Get sunrise and sunset times from OpenWeather API"""
+    import os
+    import httpx
+    
+    api_key = os.getenv("OPENWEATHER_API_KEY")
+    if not api_key:
+        raise HTTPException(500, "OpenWeather API key not configured")
+    
+    url = "https://api.openweathermap.org/data/2.5/weather"
+    params = {
+        "lat": lat,
+        "lon": lon,
+        "appid": api_key,
+    }
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, params=params, timeout=5.0)
+            response.raise_for_status()
+            data = response.json()
+            
+            return {
+                "sunrise": data["sys"]["sunrise"],
+                "sunset": data["sys"]["sunset"],
+                "timezone": data["timezone"],
+            }
+    except Exception as e:
+        raise HTTPException(500, f"Failed to fetch sun times: {str(e)}")
 
 
 @router.post("/subscribe")

@@ -1,24 +1,43 @@
 {% extends "base.html" %}
 {% block title %}Явления{% endblock %}
 {% block content %}
-<h1 class="h1">Явления</h1>
-<p><a class="btn btn--small" href="/admin/phenomena/new">Добавить</a> · <a href="/admin">Назад</a></p>
-<div class="table-wrap" style="margin-top:1rem">
+<section class="hero">
+  <h1 class="hero__title">Явления</h1>
+  <p class="hero__sub">Управление типами природных явлений</p>
+  <div class="hero__links">
+    <a class="pill pill--on" href="/admin/phenomena">Все явления</a>
+    <a class="pill" href="/admin/phenomena/new">+ Добавить</a>
+    <a class="pill pill--ghost" href="/admin"><i data-lucide="arrow-left" class="pill__ico"></i>Назад</a>
+  </div>
+</section>
+
+<div class="section section--soft" style="margin-top:1rem;margin-bottom:1rem">
+  <h3 class="section__h"><i data-lucide="arrow-up-down" class="section__ico"></i>Сортировка</h3>
+  <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.6rem">
+    <a class="btn btn--small {% if sort == 'id' %}btn--primary{% else %}btn--ghost{% endif %}" href="/admin/phenomena?sort=id">ID</a>
+    <a class="btn btn--small {% if sort == 'name' %}btn--primary{% else %}btn--ghost{% endif %}" href="/admin/phenomena?sort=name">Название</a>
+    <a class="btn btn--small {% if sort == 'slug' %}btn--primary{% else %}btn--ghost{% endif %}" href="/admin/phenomena?sort=slug">Slug</a>
+    <a class="btn btn--small {% if sort == 'kind' %}btn--primary{% else %}btn--ghost{% endif %}" href="/admin/phenomena?sort=kind">Тип</a>
+  </div>
+</div>
+
+<div class="table-wrap" style="margin-top:1.25rem">
   <table class="table">
     <thead>
-      <tr><th>ID</th><th>Slug</th><th>Название</th><th>Тип</th><th></th></tr>
+      <tr><th>ID</th><th>Slug</th><th>Название</th><th>Тип</th><th>Категория</th><th>Действия</th></tr>
     </thead>
     <tbody>
       {% for r in rows %}
       <tr>
-        <td>{{ r.id }}</td>
-        <td><code>{{ r.slug }}</code></td>
-        <td>{{ r.name }}</td>
-        <td>{{ r.kind }}</td>
+        <td style="font-family:ui-monospace,monospace;font-size:0.85rem">#{{ r.id }}</td>
+        <td><code style="font-size:0.8rem">{{ r.slug }}</code></td>
+        <td><strong>{{ r.name }}</strong></td>
+        <td><span class="badge">{% if r.kind == 'flowering' %}Цветение{% elif r.kind == 'visual' %}Визуальное{% elif r.kind == 'harvest' %}Урожай{% elif r.kind == 'animals' %}Животные{% elif r.kind == 'activity' %}Событие{% else %}{{ r.kind }}{% endif %}</span></td>
+        <td><span class="muted">{{ r.category or '—' }}</span></td>
         <td>
-          <a href="/admin/phenomena/{{ r.id }}/edit">Изм.</a>
-          <form method="post" action="/admin/phenomena/{{ r.id }}/delete" style="display:inline" onsubmit="return confirm('Удалить явление и связанные события?');">
-            <button type="submit" class="btn btn--ghost btn--small" style="margin-left:0.35rem">Удал.</button>
+          <a class="btn btn--small btn--ghost" href="/admin/phenomena/{{ r.id }}/edit">Изменить</a>
+          <form method="post" action="/admin/phenomena/{{ r.id }}/delete" style="display:inline;margin-left:0.35rem" onsubmit="return confirm('Удалить явление и связанные события?');">
+            <button type="submit" class="btn btn--small btn--danger">Удалить</button>
           </form>
         </td>
       </tr>
@@ -26,4 +45,10 @@
     </tbody>
   </table>
 </div>
+
+<script>
+if (typeof lucide !== "undefined" && lucide.createIcons) {
+  lucide.createIcons({ attrs: { class: ["lucide", "lucide-icon"] } });
+}
+</script>
 {% endblock %}

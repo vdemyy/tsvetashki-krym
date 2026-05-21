@@ -12,7 +12,11 @@
 </section>
 
 <section class="panel">
-  <form class="filters" method="get" action="/">
+  <button type="button" class="filters-toggle" id="filters-toggle">
+    <span>Фильтры</span>
+    <i data-lucide="chevron-down" class="filters-toggle__icon"></i>
+  </button>
+  <form class="filters" id="filters-form" method="get" action="/">
     <input type="hidden" name="extended" value="{{ 1 if filters.extended else 0 }}">
     <label class="filters__grow">
       <span class="filters__lab">Поиск</span>
@@ -20,7 +24,7 @@
     </label>
     <label>
       <span class="filters__lab">Регион</span>
-      <select name="region">
+      <select name="region" id="feed-region">
         <option value="">Все</option>
         {% for r in meta_regions %}
         <option value="{{ r }}" {% if filters.region == r %}selected{% endif %}>{{ r }}</option>
@@ -29,7 +33,7 @@
     </label>
     <label>
       <span class="filters__lab">Подрегион</span>
-      <select name="subregion">
+      <select name="subregion" id="feed-subregion">
         <option value="">Все</option>
         {% for s in meta_subregions %}
         <option value="{{ s }}" {% if filters.subregion == s %}selected{% endif %}>{{ s }}</option>
@@ -41,7 +45,8 @@
       <select name="kind">
         <option value="">Все</option>
         {% for k in meta_kinds %}
-        <option value="{{ k }}" {% if filters.kind == k %}selected{% endif %}>{{ k }}</option>
+        {% set kind_ru = {'flowering':'Цветение','visual':'Визуальное','harvest':'Урожай','animals':'Животные','activity':'Событие'}.get(k, k) %}
+        <option value="{{ k }}" {% if filters.kind == k %}selected{% endif %}>{{ kind_ru }}</option>
         {% endfor %}
       </select>
     </label>
@@ -90,8 +95,10 @@
   <article class="card">
     <div class="card__top">
       <span class="card__id">
-        <button type="button" class="copy-chip" data-copy="{{ e.phenomenon.slug }}">{{ e.phenomenon.slug }}</button>
-        <button type="button" class="copy-chip copy-chip--num" data-copy="{{ e.phenomenon.id }}">#{{ e.phenomenon.id }}</button>
+        <button type="button" class="copy-chip" data-copy="{{ e.phenomenon.slug }}" title="Скопировать slug">
+          <span class="copy-chip__icon">📋</span> {{ e.phenomenon.slug }}
+        </button>
+        <span class="copy-chip copy-chip--static" title="ID события">№{{ e.id }}</span>
       </span>
       <span class="badge badge--{{ e.marker_status }}">{{ stmap.get(e.marker_status, e.marker_status) }}</span>
     </div>
@@ -101,38 +108,143 @@
       </span>
       <div class="card__body">
         <h2 class="card__name"><a href="/p/{{ e.phenomenon.slug }}">{{ e.phenomenon.name }}</a></h2>
-        <p class="card__meta"><i data-lucide="map-pin" class="card__inline-ico" aria-hidden="true"></i>{{ e.place.name }} · {{ e.place.region or "" }}{% if e.place.subregion %} · {{ e.place.subregion }}{% endif %}</p>
+        <p class="card__meta">
+          <i data-lucide="map-pin" class="card__inline-ico" aria-hidden="true"></i>
+          {{ e.place.name }}
+          {% if e.place.region %}<span class="card__meta-sep">·</span>{{ e.place.region }}{% endif %}
+          {% if e.place.subregion %}<span class="card__meta-sep">·</span>{{ e.place.subregion }}{% endif %}
+        </p>
+        {% if e.phenomenon.kind_ru %}
+        <p class="card__kind">{{ e.phenomenon.kind_ru }}</p>
+        {% endif %}
       </div>
     </div>
     <dl class="dates">
       <div><dt>Начало</dt><dd>{{ e.start_date }}</dd></div>
       <div><dt>Пик</dt><dd>{{ e.peak_date }}</dd></div>
       <div><dt>Конец</dt><dd>{{ e.end_date }}</dd></div>
-      <div><dt>Сила</dt><dd>{{ e.intensity }}/5</dd></div>
+      <div><dt>Сила</dt><dd>
+        <span class="intensity-bar">
+          {% for i in range(1, 6) %}
+          <span class="intensity-bar__dot {% if i <= e.intensity %}intensity-bar__dot--on{% endif %}"></span>
+          {% endfor %}
+        </span>
+        {{ e.intensity }}/5
+      </dd></div>
     </dl>
+    {% if e.timers %}
     <ul class="timers">
       {% for t in e.timers %}
-      <li>{% if t.days is not none %}{{ t.days }} дн. — {% endif %}{{ t.label }}</li>
+      <li>{% if t.days is not none %}<strong>{{ t.days }} дн.</strong> — {% endif %}{{ t.label }}</li>
       {% endfor %}
     </ul>
+    {% endif %}
     <form class="subform" method="post" action="/subscribe">
       <input type="hidden" name="phenomenon_id" value="{{ e.phenomenon.id }}">
       <input type="email" name="email" required placeholder="Email для уведомлений" autocomplete="email">
       <button type="submit" class="btn btn--small">Подписаться</button>
     </form>
-    <p class="hint">Telegram: <code>/follow {{ e.phenomenon.slug }}</code> в боте (см. <code>telegram_bot/</code>).</p>
+    <div class="telegram-hint">
+      <span class="telegram-hint__label">Telegram:</span>
+      <button type="button" class="telegram-cmd" data-copy="/follow {{ e.phenomenon.slug }}" title="Скопировать команду">
+        <code>/follow {{ e.phenomenon.slug }}</code>
+        <span class="telegram-cmd__icon">📋</span>
+      </button>
+    </div>
   </article>
   {% endfor %}
 </div>
 {% endblock %}
+
 {% block scripts %}
 <script>
+// Mobile filters toggle
+(function() {
+  const toggle = document.getElementById("filters-toggle");
+  const filters = document.getElementById("filters-form");
+  if (toggle && filters) {
+    toggle.addEventListener("click", () => {
+      toggle.classList.toggle("active");
+      filters.classList.toggle("active");
+    });
+  }
+})();
+
+// Copy chips
 document.querySelectorAll("[data-copy]").forEach((btn) => {
   btn.addEventListener("click", async () => {
     const v = btn.getAttribute("data-copy");
-    try { await navigator.clipboard.writeText(String(v)); btn.classList.add("copied"); setTimeout(() => btn.classList.remove("copied"), 900); } catch (_) {}
+    try { 
+      await navigator.clipboard.writeText(String(v)); 
+      btn.classList.add("copied"); 
+      setTimeout(() => btn.classList.remove("copied"), 1200); 
+    } catch (_) {}
   });
 });
+
+// Dynamic subregion filter based on selected region
+(function() {
+  const regionSel = document.getElementById("feed-region");
+  const subregionSel = document.getElementById("feed-subregion");
+  if (!regionSel || !subregionSel) return;
+
+  // Build map from existing options: region -> [subregions]
+  // We fetch from API to get accurate data
+  const allSubregions = Array.from(subregionSel.options)
+    .filter(o => o.value)
+    .map(o => o.value);
+
+  const savedSubregion = subregionSel.value;
+
+  async function loadSubregions(region) {
+    try {
+      const r = await fetch("/api/filters/meta");
+      const data = await r.json();
+      return data.subregions || [];
+    } catch(_) { return allSubregions; }
+  }
+
+  // Region->subregion mapping from API
+  let metaCache = null;
+  async function getMeta() {
+    if (metaCache) return metaCache;
+    try {
+      const r = await fetch("/api/filters/meta");
+      metaCache = await r.json();
+    } catch(_) { metaCache = { subregions: allSubregions }; }
+    return metaCache;
+  }
+
+  // We need per-region subregions — use real API endpoint
+  async function updateSubregions() {
+    const region = regionSel.value;
+    const current = subregionSel.value;
+
+    let subs = [];
+    try {
+      const url = region ? `/api/filters/subregions?region=${encodeURIComponent(region)}` : "/api/filters/subregions";
+      const r = await fetch(url);
+      const data = await r.json();
+      subs = data.subregions || [];
+    } catch(_) {
+      subs = allSubregions;
+    }
+
+    subregionSel.innerHTML = '<option value="">Все</option>';
+    subs.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s;
+      opt.textContent = s;
+      if (s === current || s === savedSubregion) opt.selected = true;
+      subregionSel.appendChild(opt);
+    });
+  }
+
+  regionSel.addEventListener("change", updateSubregions);
+  // Init on load — only update if region is pre-selected
+  if (regionSel.value) updateSubregions();
+})();
+
 if (typeof lucide !== "undefined" && lucide.createIcons) {
   lucide.createIcons({ attrs: { class: ["lucide", "lucide-icon"] } });
 }

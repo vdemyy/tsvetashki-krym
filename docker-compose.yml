@@ -1,4 +1,22 @@
 services:
+  db:
+    image: postgres:15-alpine
+    container_name: tsvetashki_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tsvetashki
+      POSTGRES_USER: tsvetashki
+      POSTGRES_PASSWORD: tsvetashki_pass_2026
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tsvetashki"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build: .
     container_name: tsvetashki_backend
@@ -13,7 +31,10 @@ services:
     working_dir: /app
     environment:
       - PYTHONPATH=/app
-      - DATABASE_URL=sqlite:////app/data/tsvetashki.db
+      - DATABASE_URL=postgresql://tsvetashki:tsvetashki_pass_2026@db:5432/tsvetashki
+    depends_on:
+      db:
+        condition: service_healthy
 
   bot:
     profiles: ["bot"]
@@ -28,8 +49,11 @@ services:
     working_dir: /app
     environment:
       - PYTHONPATH=/app
-      - DATABASE_URL=sqlite:////app/data/tsvetashki.db
+      - DATABASE_URL=postgresql://tsvetashki:tsvetashki_pass_2026@db:5432/tsvetashki
     command: ["python", "-m", "telegram_bot.bot"]
+    depends_on:
+      db:
+        condition: service_healthy
 
   # Отдельный сервис для одноразовой проверки уведомлений (можно запускать по cron)
   notification_worker:
@@ -45,8 +69,30 @@ services:
     working_dir: /app
     environment:
       - PYTHONPATH=/app
-      - DATABASE_URL=sqlite:////app/data/tsvetashki.db
+      - DATABASE_URL=postgresql://tsvetashki:tsvetashki_pass_2026@db:5432/tsvetashki
     command: ["python", "-m", "telegram_bot.notification_worker"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # pgAdmin - веб-интерфейс для управления PostgreSQL
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: tsvetashki_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
 
 volumes:
   tsvetashki_data:
+  postgres_data:
+  pgadmin_data:

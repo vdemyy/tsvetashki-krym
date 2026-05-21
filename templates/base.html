@@ -1,21 +1,31 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}{{ title or "Цветашки Крым" }}{% endblock %} · Цветашки</title>
+  <!-- Prevent FOUC (Flash of Unstyled Content) -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      const autoTheme = localStorage.getItem('autoTheme');
+      if (savedTheme && autoTheme !== 'true') {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      }
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,500;0,7..72,600;1,7..72,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/style.css?v=16">
   {% block head %}{% endblock %}
 </head>
 <body>
   <header class="site-header">
     <div class="site-header__inner">
       <a class="logo" href="/">
-        <i data-lucide="map" class="logo__mark lucide-icon" aria-hidden="true"></i>
-        <span class="logo__text">Цветашки</span>
+        <img src="/img/logo.png" alt="Цветение Крыма" class="logo__img">
+        <span class="logo__text">Календарь цветения и природных явлений полуострова</span>
       </a>
       <nav class="nav" aria-label="Разделы">
         <a class="nav__link" href="/" {% if request.url.path == "/" %}aria-current="page"{% endif %}>
@@ -26,13 +36,17 @@
           <i data-lucide="map-pinned" class="nav__ico" aria-hidden="true"></i>
           Карта
         </a>
+        <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему">
+          <i data-lucide="sun" class="theme-toggle__icon theme-toggle__icon--light" aria-hidden="true"></i>
+          <i data-lucide="moon" class="theme-toggle__icon theme-toggle__icon--dark" aria-hidden="true"></i>
+        </button>
         <a class="nav__link nav__link--ghost" href="/admin/login">
           <i data-lucide="shield" class="nav__ico" aria-hidden="true"></i>
           Вход
         </a>
       </nav>
     </div>
-    <p class="tagline">Сезонные явления Крыма — сухие факты, тихий интерфейс.</p>
+    <p class="tagline">Календарь цветения и природных явлений полуострова</p>
   </header>
   <main class="main">
     {% block content %}{% endblock %}
@@ -41,7 +55,10 @@
     <span>Ориентир для поездок. Погода и даты уточняйте перед выездом.</span>
   </footer>
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
-  <script src="/static/js/lucide-init.js" defer></script>
+  <script src="/static/js/lucide-init.js?v=16" defer></script>
+  <script src="/static/js/theme.js?v=16" defer></script>
+  <script src="/static/js/petals.js?v=16" defer></script>
+  <script src="/static/js/fireflies.js?v=16" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

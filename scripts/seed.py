@@ -117,6 +117,14 @@ def ensure_seed() -> None:
     try:
         # --- места ---
         places = {
+            "kerch": _get_or_create_place(
+                db,
+                "Сады у Керчи",
+                region="Восточный Крым",
+                subregion="Керчь",
+                latitude=45.357,
+                longitude=36.468,
+            ),
             "turg": _get_or_create_place(
                 db,
                 "Тургеневка (лавандовые поля)",
@@ -221,13 +229,109 @@ def ensure_seed() -> None:
                 latitude=44.392,
                 longitude=33.787,
             ),
-            "kerch": _get_or_create_place(
+            "sudak_bay": _get_or_create_place(
                 db,
-                "Сады у Керчи",
+                "Бухта Судак",
+                region="Южный Крым",
+                subregion="Судак",
+                latitude=44.845,
+                longitude=34.985,
+            ),
+            "catalchauk": _get_or_create_place(
+                db,
+                "Чатал-Чауш (ущелье)",
+                region="Южный Крым",
+                subregion="Бахчисарайский район",
+                latitude=44.698,
+                longitude=33.812,
+            ),
+            "kapchik": _get_or_create_place(
+                db,
+                "Мыс Капчик",
                 region="Восточный Крым",
-                subregion="Керчь",
-                latitude=45.357,
-                longitude=36.468,
+                subregion="Керченский полуостров",
+                latitude=45.032,
+                longitude=35.312,
+            ),
+            "tajron": _get_or_create_place(
+                db,
+                "Тарханкут (мыс)",
+                region="Западный Крым",
+                subregion="Черноморский район",
+                latitude=45.315,
+                longitude=32.985,
+            ),
+            "melas": _get_or_create_place(
+                db,
+                "Мелас (бухта)",
+                region="Восточный Крым",
+                subregion="Феодосия",
+                latitude=44.912,
+                longitude=35.318,
+            ),
+            "uchan_su": _get_or_create_place(
+                db,
+                "Водопад Учан-Су",
+                region="Южный Крым",
+                subregion="Ялта",
+                latitude=44.438,
+                longitude=34.132,
+            ),
+            "massandra": _get_or_create_place(
+                db,
+                "Массандра (парки)",
+                region="Южный Крым",
+                subregion="Ялта",
+                latitude=44.485,
+                longitude=34.215,
+            ),
+            "gurzuf": _get_or_create_place(
+                db,
+                "Гурзуф (Аю-Даг)",
+                region="Южный Крым",
+                subregion="Ялта",
+                latitude=44.618,
+                longitude=34.412,
+            ),
+            "kara_dag": _get_or_create_place(
+                db,
+                "Кара-Даг (заповедник)",
+                region="Восточный Крым",
+                subregion="Феодосия",
+                latitude=44.872,
+                longitude=35.485,
+            ),
+            "salgir": _get_or_create_place(
+                db,
+                "Салгир (долина)",
+                region="Восточный Крым",
+                subregion="Симферополь",
+                latitude=44.912,
+                longitude=34.128,
+            ),
+            "balaklava": _get_or_create_place(
+                db,
+                "Балаклава (бухта)",
+                region="Севастополь",
+                subregion="Балаклавский округ",
+                latitude=44.482,
+                longitude=33.612,
+            ),
+            "hermon": _get_or_create_place(
+                db,
+                "Чатыр-Даг (пещеры)",
+                region="Южный Крым",
+                subregion="Бахчисарайский район",
+                latitude=44.712,
+                longitude=34.218,
+            ),
+            "novy_svet": _get_or_create_place(
+                db,
+                "Новый Свет (тропа)",
+                region="Южный Крым",
+                subregion="Судак",
+                latitude=44.892,
+                longitude=35.112,
             ),
         }
 
@@ -393,6 +497,136 @@ def ensure_seed() -> None:
             description="Демо-даты — уточняйте у организаторов.",
             typical_season="Лето.",
             icon_lucide="store",
+        )
+        rose = _get_or_create_phenomenon(
+            db,
+            "rozovyj-sad-massandra",
+            name="Розовый сад (Массандра)",
+            kind="flowering",
+            category="цветы · парки",
+            description="Коллекционные розы в Массандровском парке.",
+            typical_season="Май — июнь.",
+            icon_lucide="flower",
+        )
+        iris = _get_or_create_phenomenon(
+            db,
+            "касатики-тарханкут",
+            name="Касатики (ирисы) на Тарханкуте",
+            kind="flowering",
+            category="цветы · редкое",
+            description="Дикорастущие ирисы на степных склонах.",
+            typical_season="Май.",
+            icon_lucide="flower-2",
+        )
+        magnolia = _get_or_create_phenomenon(
+            db,
+            "магнолия-гурзуф",
+            name="Магнолии (Гурзуф)",
+            kind="flowering",
+            category="деревья",
+            description="Цветение крупнолистных магнолий в парках.",
+            typical_season="Апрель — май.",
+            icon_lucide="tree-deciduous",
+        )
+        peony_wild = _get_or_create_phenomenon(
+            db,
+            "дикие-пионы-чатал-чауш",
+            name="Дикие пионы (ущелья)",
+            kind="flowering",
+            category="цветы · редкое",
+            description="Лесные пионы в тенистых ущельях.",
+            typical_season="Май.",
+            icon_lucide="flower-2",
+        )
+        sea_anemone = _get_or_create_phenomenon(
+            db,
+            "актинии-тарханкут",
+            name="Актинии на мелководье (Тарханкут)",
+            kind="animals",
+            category="море · редкое",
+            description="При ясной воде видны на камнях у берега.",
+            typical_season="Июнь — сентябрь.",
+            icon_lucide="waves",
+        )
+        stork = _get_or_create_phenomenon(
+            db,
+            "аисты-симферополь",
+            name="Гнездование аистов",
+            kind="animals",
+            category="птицы",
+            description="Белые аисты возвращаются к гнездовьям.",
+            typical_season="Март — август.",
+            icon_lucide="bird",
+        )
+        lilac = _get_or_create_phenomenon(
+            db,
+            "сирень-симферополь",
+            name="Сирень (Симферополь и окрестности)",
+            kind="flowering",
+            category="кустарники",
+            description="Массовое цветение сирени в садах и парках.",
+            typical_season="Апрель — май.",
+            icon_lucide="leaf",
+        )
+        night_bloom = _get_or_create_phenomenon(
+            db,
+            "ночное-цветение-кара-даг",
+            name="Ночное цветение (степные растения)",
+            kind="flowering",
+            category="редкое",
+            description="Некоторые степные растения цветут ночью с ароматом.",
+            typical_season="Июнь — июль.",
+            icon_lucide="moon",
+        )
+        dolphin_sudak = _get_or_create_phenomenon(
+            db,
+            "дельфины-судак",
+            name="Дельфины у Судака",
+            kind="animals",
+            category="море",
+            description="Прохождение стай у побережья.",
+            typical_season="Июль — сентябрь.",
+            icon_lucide="waves",
+        )
+        chestnut = _get_or_create_phenomenon(
+            db,
+            "каштан-ялта",
+            name="Конский каштан (Ялта)",
+            kind="flowering",
+            category="деревья",
+            description="Цветение каштанов в городских насаждениях.",
+            typical_season="Апрель — май.",
+            icon_lucide="tree-deciduous",
+        )
+        cactus = _get_or_create_phenomenon(
+            db,
+            "кактусы-новы-свет",
+            name="Дикорастущие кактусы (Новый Свет)",
+            kind="flowering",
+            category="редкое",
+            description="Уникальные локальные популяции на скалах.",
+            typical_season="Июнь.",
+            icon_lucide="flower",
+        )
+        mist_morning = _get_or_create_phenomenon(
+            db,
+            "утренний-туман-балклава",
+            name="Утренний туман над бухтой (Балаклава)",
+            kind="visual",
+            category="пейзаж",
+            description="Рассветный туман создает мистическую атмосферу.",
+            typical_season="Осень — весна.",
+            icon_lucide="cloud-fog",
+        )
+        falcon = _get_or_create_phenomenon(
+            db,
+            "сокол-чатыр-даг",
+            name="Гнездование соколов (Чатыр-Даг)",
+            kind="animals",
+            category="птицы · редкое",
+            description="Соколы-сапсаны и кречеты на скалах.",
+            typical_season="Апрель — июль.",
+            icon_lucide="bird",
         )
 
         lavanda_history = [
@@ -567,6 +801,136 @@ def ensure_seed() -> None:
             start_date=date(2026, 6, 10),
             peak_date=date(2026, 6, 14),
             end_date=date(2026, 6, 16),
+            intensity=2,
+            phase_history=None,
+        )
+        _ensure_event(
+            db,
+            rose,
+            places["massandra"],
+            start_date=date(2026, 5, 15),
+            peak_date=date(2026, 5, 28),
+            end_date=date(2026, 6, 12),
+            intensity=4,
+            phase_history=None,
+        )
+        _ensure_event(
+            db,
+            iris,
+            places["tajron"],
+            start_date=date(2026, 5, 8),
+            peak_date=date(2026, 5, 18),
+            end_date=date(2026, 5, 28),
+            intensity=3,
+            phase_history=None,
+        )
+        _ensure_event(
+            db,
+            magnolia,
+            places["gurzuf"],
+            start_date=date(2026, 4, 15),
+            peak_date=date(2026, 4, 28),
+            end_date=date(2026, 5, 12),
+            intensity=3,
+            phase_history=None,
+        )
+        _ensure_event(
+            db,
+            peony_wild,
+            places["catalchauk"],
+            start_date=date(2026, 5, 1),
+            peak_date=date(2026, 5, 12),
+            end_date=date(2026, 5, 22),
+            intensity=2,
+            phase_history=None,
+        )
+        _ensure_event(
+            db,
+            sea_anemone,
+            places["tajron"],
+            start_date=date(2026, 6, 1),
+            peak_date=date(2026, 7, 20),
+            end_date=date(2026, 9, 15),
+            intensity=2,
+            phase_history=None,
+        )
+        _ensure_event(
+            db,
+            stork,
+            places["salgir"],
+            start_date=date(2026, 3, 15),
+            peak_date=date(2026, 5, 20),
+            end_date=date(2026, 8, 25),
+            intensity=3,
+            phase_history=None,
+        )
+        _ensure_event(
+            db,
+            lilac,
+            places["salgir"],
+            start_date=date(2026, 4, 20),
+            peak_date=date(2026, 5, 5),
+            end_date=date(2026, 5, 18),
+            intensity=4,
+            phase_history=None,
+        )
+        _ensure_event(
+            db,
+            night_bloom,
+            places["kara_dag"],
+            start_date=date(2026, 6, 10),
+            peak_date=date(2026, 7, 5),
+            end_date=date(2026, 7, 25),
+            intensity=1,
+            phase_history=None,
+        )
+        _ensure_event(
+            db,
+            dolphin_sudak,
+            places["sudak_bay"],
+            start_date=date(2026, 7, 1),
+            peak_date=date(2026, 8, 10),
+            end_date=date(2026, 9, 20),
+            intensity=2,
+            phase_history=None,
+        )
+        _ensure_event(
+            db,
+            chestnut,
+            places["uchan_su"],
+            start_date=date(2026, 4, 12),
+            peak_date=date(2026, 4, 25),
+            end_date=date(2026, 5, 8),
+            intensity=3,
+            phase_history=None,
+        )
+        _ensure_event(
+            db,
+            cactus,
+            places["novy_svet"],
+            start_date=date(2026, 6, 5),
+            peak_date=date(2026, 6, 18),
+            end_date=date(2026, 6, 28),
+            intensity=2,
+            phase_history=None,
+        )
+        _ensure_event(
+            db,
+            mist_morning,
+            places["balaklava"],
+            start_date=date(2026, 9, 1),
+            peak_date=date(2026, 10, 20),
+            end_date=date(2026, 11, 30),
+            intensity=2,
+            phase_history=None,
+        )
+        _ensure_event(
+            db,
+            falcon,
+            places["hermon"],
+            start_date=date(2026, 4, 1),
+            peak_date=date(2026, 5, 15),
+            end_date=date(2026, 7, 20),
             intensity=2,
             phase_history=None,
         )

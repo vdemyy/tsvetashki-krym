@@ -26,8 +26,8 @@ async def feed_page(
     region: str | None = None,
     subregion: str | None = None,
     kind: str | None = None,
-    phenomenon_id: int | None = None,
-    month: int | None = Query(None, ge=1, le=12),
+    phenomenon_id: str | None = None,
+    month: str | None = None,
     q: str | None = None,
     sort: str = Query("start"),
     extended: bool = Query(
@@ -38,6 +38,24 @@ async def feed_page(
     today = date.today()
     if sort not in ("start", "peak", "end", "place", "name"):
         sort = "start"
+    
+    # Convert string params to proper types, handle empty strings
+    phenomenon_id_int = None
+    if phenomenon_id and phenomenon_id.strip():
+        try:
+            phenomenon_id_int = int(phenomenon_id)
+        except ValueError:
+            pass
+    
+    month_int = None
+    if month and month.strip():
+        try:
+            month_int = int(month)
+            if not (1 <= month_int <= 12):
+                month_int = None
+        except ValueError:
+            pass
+    
     stmt = _event_query(
         db,
         today,
@@ -45,9 +63,9 @@ async def feed_page(
         region=region,
         subregion=subregion,
         kind=kind,
-        phenomenon_id=phenomenon_id,
+        phenomenon_id=phenomenon_id_int,
         slug=None,
-        month=month,
+        month=month_int,
         q=q,
     )
     if sort == "start":
@@ -85,8 +103,8 @@ async def feed_page(
                 "region": region,
                 "subregion": subregion,
                 "kind": kind,
-                "phenomenon_id": phenomenon_id,
-                "month": month,
+                "phenomenon_id": phenomenon_id_int,
+                "month": month_int,
                 "q": q or "",
                 "sort": sort,
                 "extended": extended,

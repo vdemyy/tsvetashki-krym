@@ -185,21 +185,36 @@ docker compose down
 ```text
 tsvetashki-krym/
 │
-├── routers/              # Маршруты FastAPI
-├── services/             # Бизнес-логика
-├── static/               # CSS, JavaScript файлы
-├── templates/            # HTML шаблоны
+├── routers/              # Маршруты FastAPI (admin, api, pages)
+├── services/             # Бизнес-логика (weather, forecast, icon_map)
+├── static/               # Статические файлы
+│   ├── css/              # Стили
+│   ├── js/               # JavaScript (theme, petals, fireflies, map)
+│   └── img/              # Изображения
+├── templates/            # HTML шаблоны (Jinja2)
+│   ├── admin/            # Админ-панель
+│   ├── base.html         # Базовый шаблон
+│   ├── feed.html         # Лента событий
+│   ├── map.html          # Карта
+│   └── phenomenon.html   # Страница явления
 ├── telegram_bot/         # Telegram бот
-├── data/                 # База данных SQLite
+│   ├── bot.py            # Основная логика бота
+│   └── notification_worker.py  # Отправка уведомлений
+├── utils/                # Утилиты (dates)
+├── data/                 # База данных
+├── docs/                 # Документация разработки
+├── scripts/              # Вспомогательные скрипты
+│   └── seed.py           # Наполнение тестовыми данными
 │
 ├── main.py               # Точка входа приложения
-├── models.py             # Модели базы данных
+├── models.py             # Модели базы данных (SQLAlchemy)
 ├── database.py           # Настройка подключения к БД
-├── seed.py               # Наполнение тестовыми данными
 │
 ├── requirements.txt      # Зависимости Python
 ├── docker-compose.yml    # Конфигурация Docker
-└── .env.example          # Пример переменных окружения
+├── Dockerfile            # Docker образ
+├── .env.example          # Пример переменных окружения
+└── README.md             # Этот файл
 ```
 
 ---
