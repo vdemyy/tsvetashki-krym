@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from datetime import date
 from typing import Any
 
@@ -13,17 +14,81 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Event, Phenomenon, Place, Subscription, TelegramWatch
+from utils.logger import log_login_attempt, log_admin_action
+from utils.security import sanitize_string, validate_slug, is_safe_url
+from utils.owasp_protection import (
+    check_user_permission,
+    sanitize_sql_input,
+    validate_business_logic,
+    sanitize_html,
+    generate_csrf_token,
+    verify_csrf_token,
+)
 
 templates = Jinja2Templates(directory="templates")
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "dreamteam")
 
+# Простая защита от брутфорса (хранит попытки входа)
+login_attempts = {}  # {ip: [timestamp1, timestamp2, ...]}
+MAX_LOGIN_ATTEMPTS = 5  # Максимум попыток
+LOGIN_TIMEOUT = 300  # 5 минут блокировки
+
+
+def check_login_attempts(ip: str) -> bool:
+    """Проверяет, не заблокирован ли IP"""
+    current_time = time.time()
+    
+    # Инициализируем список попыток для IP
+    if ip not in login_attempts:
+        login_attempts[ip] = []
+    
+    # Удаляем старые попытки (старше 5 минут)
+    login_attempts[ip] = [
+        attempt_time for attempt_time in login_attempts[ip]
+        if current_time - attempt_time < LOGIN_TIMEOUT
+    ]
+    
+    # Проверяем количество попыток
+    if len(login_attempts[ip]) >= MAX_LOGIN_ATTEMPTS:
+        return False  # Заблокирован
+    
+    return True  # Можно пытаться
+
+
+def add_login_attempt(ip: str):
+    """Добавляет попытку входа"""
+    if ip not in login_attempts:
+        login_attempts[ip] = []
+    login_attempts[ip].append(time.time())
+
 
 def _check(request: Request) -> RedirectResponse | None:
+    """Проверяет авторизацию и генерирует CSRF токен"""
     if not request.session.get("admin"):
         return RedirectResponse(url="/admin/login", status_code=303)
+    
+    # Генерируем CSRF токен если его нет
+    if "csrf_token" not in request.session:
+        request.session["csrf_token"] = generate_csrf_token()
+    
     return None
+
+
+def _check_csrf(request: Request, csrf_token: str = Form(None)) -> bool:
+    """Проверяет CSRF токен"""
+    session_token = request.session.get("csrf_token", "")
+    
+    # Для GET запросов CSRF не нужен
+    if request.method == "GET":
+        return True
+    
+    # Для POST проверяем токен
+    if not csrf_token:
+        return False
+    
+    return verify_csrf_token(csrf_token, session_token)
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -37,13 +102,47 @@ async def login_form(request: Request):
 
 @router.post("/login")
 async def login_post(request: Request, password: str = Form(...)):
+    # Получаем IP клиента
+    client_ip = request.client.host
+    
+    # Проверяем, не заблокирован ли IP
+    if not check_login_attempts(client_ip):
+        log_login_attempt(client_ip, False)
+        return templates.TemplateResponse(
+            request,
+            "admin/login.html",
+            {
+                "title": "Вход",
+                "error": "Слишком много попыток входа. Подождите 5 минут."
+            },
+            status_code=429,
+        )
+    
+    # Проверяем пароль
     if password == ADMIN_PASSWORD:
         request.session["admin"] = True
+        # Очищаем попытки при успешном входе
+        if client_ip in login_attempts:
+            login_attempts[client_ip] = []
+        # Логируем успешный вход
+        log_login_attempt(client_ip, True)
         return RedirectResponse(url="/admin", status_code=303)
+    
+    # Добавляем неудачную попытку
+    add_login_attempt(client_ip)
+    # Логируем неудачную попытку
+    log_login_attempt(client_ip, False)
+    
+    # Считаем оставшиеся попытки
+    remaining = MAX_LOGIN_ATTEMPTS - len(login_attempts.get(client_ip, []))
+    
     return templates.TemplateResponse(
         request,
         "admin/login.html",
-        {"title": "Вход", "error": "Неверный пароль"},
+        {
+            "title": "Вход",
+            "error": f"Неверный пароль. Осталось попыток: {remaining}"
+        },
         status_code=401,
     )
 
@@ -76,7 +175,7 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
 async def list_phenomena(
     request: Request,
     db: Session = Depends(get_db),
-    sort: str = Query("id", regex="^(id|name|slug|kind)$"),
+    sort: str = Query("id", pattern="^(id|name|slug|kind)$"),
 ):
     redir = _check(request)
     if redir:
@@ -129,19 +228,37 @@ async def new_phenomenon_post(
     redir = _check(request)
     if redir:
         return redir
+    
+    # Валидация slug
+    slug_clean = slug.strip().lower()
+    if not validate_slug(slug_clean):
+        raise HTTPException(400, "Некорректный slug. Используйте только буквы, цифры и дефисы")
+    
+    # Валидация URL
+    if main_photo_url.strip() and not is_safe_url(main_photo_url.strip()):
+        raise HTTPException(400, "Некорректный URL фото")
+    
+    if website_url.strip() and not is_safe_url(website_url.strip()):
+        raise HTTPException(400, "Некорректный URL сайта")
+    
+    # Очистка текстовых полей
+    name_clean = sanitize_string(name, max_length=200)
+    description_clean = sanitize_string(description, max_length=2000)
+    
     wt: float | None = None
     if water_temp_c.strip():
         try:
             wt = float(water_temp_c.replace(",", "."))
         except ValueError:
             wt = None
+    
     db.add(
         Phenomenon(
-            slug=slug.strip(),
-            name=name.strip(),
+            slug=slug_clean,
+            name=name_clean,
             kind=kind.strip(),
             category=category.strip() or None,
-            description=description.strip() or None,
+            description=description_clean or None,
             typical_season=typical_season.strip() or None,
             icon_emoji=icon_emoji.strip() or "",
             icon_lucide=icon_lucide.strip() or None,
@@ -151,6 +268,10 @@ async def new_phenomenon_post(
         )
     )
     db.commit()
+    
+    # Логируем действие
+    log_admin_action(request.client.host, "create_phenomenon", f"slug={slug_clean}")
+    
     return RedirectResponse(url="/admin/phenomena", status_code=303)
 
 
@@ -233,7 +354,7 @@ async def delete_phenomenon(request: Request, pid: int, db: Session = Depends(ge
 async def list_places(
     request: Request,
     db: Session = Depends(get_db),
-    sort: str = Query("id", regex="^(id|name|region)$"),
+    sort: str = Query("id", pattern="^(id|name|region)$"),
 ):
     redir = _check(request)
     if redir:
@@ -359,7 +480,7 @@ def _parse_json_list(raw: str) -> list[dict[str, Any]] | None:
 async def list_events_admin(
     request: Request,
     db: Session = Depends(get_db),
-    sort: str = Query("start_desc", regex="^(id|start_desc|start_asc|phenomenon|place)$"),
+    sort: str = Query("start_desc", pattern="^(id|start_desc|start_asc|phenomenon|place)$"),
 ):
     redir = _check(request)
     if redir:
@@ -414,6 +535,21 @@ async def new_event_post(
     redir = _check(request)
     if redir:
         return redir
+    
+    # Проверяем бизнес-логику (даты и интенсивность)
+    is_valid, error_msg = validate_business_logic({
+        "start_date": start_date,
+        "peak_date": peak_date,
+        "end_date": end_date,
+        "intensity": intensity,
+    })
+    
+    if not is_valid:
+        raise HTTPException(400, error_msg)
+    
+    # Очищаем заметки от HTML
+    notes_clean = sanitize_html(notes.strip()) if notes.strip() else None
+    
     phist = _parse_json_list(phase_history_json)
     db.add(
         Event(
@@ -424,10 +560,14 @@ async def new_event_post(
             end_date=end_date,
             intensity=intensity,
             phase_history=phist,
-            notes=notes.strip() or None,
+            notes=notes_clean,
         )
     )
     db.commit()
+    
+    # Логируем действие
+    log_admin_action(request.client.host, "create_event", f"phenomenon_id={phenomenon_id}")
+    
     return RedirectResponse(url="/admin/events", status_code=303)
 
 

@@ -36,12 +36,32 @@ from sqlalchemy.orm import Session, joinedload
 from database import SessionLocal
 from models import Event, Phenomenon, Place, TelegramWatch
 from services.forecast import marker_status
+from utils.owasp_protection import sanitize_sql_input, sanitize_html
+from utils.logger import log_suspicious_activity
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 log = logging.getLogger("tsvetashki.tg")
+
+# Простая защита от спама в боте
+user_last_command = {}  # {chat_id: timestamp}
+COMMAND_COOLDOWN = 1  # Секунды между командами
+
+
+def check_rate_limit(chat_id: int) -> bool:
+    """Проверяет rate limit для пользователя"""
+    import time
+    current_time = time.time()
+    
+    if chat_id in user_last_command:
+        last_time = user_last_command[chat_id]
+        if current_time - last_time < COMMAND_COOLDOWN:
+            return False  # Слишком быстро
+    
+    user_last_command[chat_id] = current_time
+    return True
 
 # Эмодзи для разных типов явлений
 KIND_EMOJI = {
@@ -798,6 +818,11 @@ async def cmd_week(message: Message) -> None:
 @dp.message(Command("search"))
 async def cmd_search(message: Message, command: CommandObject) -> None:
     """Поиск явлений."""
+    # Проверяем rate limit
+    if not check_rate_limit(message.chat.id):
+        await message.answer("⏳ Подождите немного перед следующей командой")
+        return
+    
     query = command.args.strip() if command and command.args else None
     
     if not query:
@@ -812,6 +837,13 @@ async def cmd_search(message: Message, command: CommandObject) -> None:
         await message.answer(text, parse_mode=ParseMode.HTML)
         return
     
+    # Очищаем от SQL injection
+    query_clean = sanitize_sql_input(query)
+    
+    # Ограничиваем длину запроса
+    if len(query_clean) > 50:
+        query_clean = query_clean[:50]
+    
     db = SessionLocal()
     
     try:
@@ -819,9 +851,9 @@ async def cmd_search(message: Message, command: CommandObject) -> None:
             select(Phenomenon)
             .where(
                 or_(
-                    Phenomenon.name.ilike(f"%{query}%"),
-                    Phenomenon.description.ilike(f"%{query}%"),
-                    Phenomenon.slug.ilike(f"%{query}%")
+                    Phenomenon.name.ilike(f"%{query_clean}%"),
+                    Phenomenon.description.ilike(f"%{query_clean}%"),
+                    Phenomenon.slug.ilike(f"%{query_clean}%")
                 )
             )
             .limit(10)
@@ -830,7 +862,7 @@ async def cmd_search(message: Message, command: CommandObject) -> None:
         if not phenomena:
             text = f"""<b>❌ Ничего не найдено</b>
 
-По запросу "<i>{escape_html(query)}</i>" ничего не найдено.
+По запросу "<i>{escape_html(query_clean)}</i>" ничего не найдено.
 
 💡 Попробуйте другое ключевое слово или посмотрите /help
 
@@ -839,7 +871,7 @@ async def cmd_search(message: Message, command: CommandObject) -> None:
             await message.answer(text, parse_mode=ParseMode.HTML)
             return
         
-        response = f"<b>🔍 РЕЗУЛЬТАТЫ ПОИСКА:</b> <i>{escape_html(query)}</i>\n\n"
+        response = f"<b>🔍 РЕЗУЛЬТАТЫ ПОИСКА:</b> <i>{escape_html(query_clean)}</i>\n\n"
         
         for ph in phenomena:
             emoji = get_kind_emoji(ph.kind)

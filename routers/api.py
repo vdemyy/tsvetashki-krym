@@ -12,6 +12,7 @@ from models import Event, Phenomenon, Place, Subscription
 from services.forecast import forecast_from_history, marker_status
 from services.icon_map import lucide_icon_for_phenomenon
 from services.weather import rain_hint, get_weather_details
+from utils.owasp_protection import sanitize_sql_input, sanitize_html
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -120,7 +121,14 @@ def _event_query(
             )
         )
     if q:
-        like = f"%{q.strip()}%"
+        # Очищаем от SQL injection
+        q_clean = sanitize_sql_input(q.strip())
+        
+        # Ограничиваем длину поискового запроса
+        if len(q_clean) > 100:
+            q_clean = q_clean[:100]
+        
+        like = f"%{q_clean}%"
         stmt = stmt.where(
             or_(
                 Phenomenon.name.ilike(like),
