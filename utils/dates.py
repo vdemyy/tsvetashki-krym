@@ -1,39 +1,52 @@
-from __future__ import annotations
+# Работа с датами и таймерами
 
-from dataclasses import dataclass
 from datetime import date, timedelta
 
 
-@dataclass
 class PhaseTimers:
-    label: str
-    days: int | None
+    """Таймеры для фаз события"""
+    def __init__(self, label, days):
+        self.label = label
+        self.days = days
 
 
-def timers_for_phases(today: date, start: date, peak: date, end: date) -> list[PhaseTimers]:
-    out: list[PhaseTimers] = []
+def timers_for_phases(today, start, peak, end):
+    """Создает таймеры для разных фаз события"""
+    timers = []
+    
     if today < start:
-        out.append(PhaseTimers("до начала", (start - today).days))
-        out.append(PhaseTimers("до пика", (peak - today).days))
-        out.append(PhaseTimers("до конца", (end - today).days))
+        # До начала
+        timers.append(PhaseTimers("до начала", (start - today).days))
+        timers.append(PhaseTimers("до пика", (peak - today).days))
+        timers.append(PhaseTimers("до конца", (end - today).days))
     elif today < peak:
-        out.append(PhaseTimers("до пика", (peak - today).days))
-        out.append(PhaseTimers("до конца", (end - today).days))
+        # Между началом и пиком
+        timers.append(PhaseTimers("до пика", (peak - today).days))
+        timers.append(PhaseTimers("до конца", (end - today).days))
     elif today <= end:
-        out.append(PhaseTimers("до конца", (end - today).days))
-        out.append(PhaseTimers("после пика", (today - peak).days))
+        # Между пиком и концом
+        timers.append(PhaseTimers("до конца", (end - today).days))
+        timers.append(PhaseTimers("после пика", (today - peak).days))
     else:
-        out.append(PhaseTimers("сезон завершён", None))
-    return out
+        # После конца
+        timers.append(PhaseTimers("сезон завершён", None))
+    
+    return timers
 
 
-def feed_window_days() -> int:
+def feed_window_days():
+    """Возвращает количество дней для ленты"""
     return 7
 
 
-def event_in_feed(today: date, start: date, end: date, upcoming_days: int = 7) -> bool:
+def event_in_feed(today, start, end, upcoming_days=7):
+    """Проверяет попадает ли событие в ленту"""
+    # Событие идет сейчас
     if start <= today <= end:
         return True
+    
+    # Событие начнется скоро
     if today < start <= today + timedelta(days=upcoming_days):
         return True
+    
     return False

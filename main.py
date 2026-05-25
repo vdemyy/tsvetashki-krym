@@ -1,5 +1,6 @@
 import os
 from contextlib import asynccontextmanager
+import time
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
@@ -7,9 +8,8 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
-import time
 
-import models  # noqa: F401 — регистрация таблиц в metadata
+import models
 from database import Base, apply_schema_patches, engine
 from routers import admin, api, pages
 from scripts.seed import ensure_seed
@@ -17,24 +17,23 @@ from scripts.seed import ensure_seed
 load_dotenv()
 
 
-# Простой Rate Limiter (защита от спама)
+# Middleware для ограничения запросов (защита от спама)
 class RateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, max_requests=100, window_seconds=60):
         super().__init__(app)
         self.max_requests = max_requests
         self.window_seconds = window_seconds
-        self.requests = {}  # {ip: [timestamp1, timestamp2, ...]}
+        self.requests = {}
     
-    async def dispatch(self, request: Request, call_next):
-        # Получаем IP адрес клиента
+    async def dispatch(self, request, call_next):
         client_ip = request.client.host
         current_time = time.time()
         
-        # Инициализируем список запросов для IP
+        # Создаем список запросов для IP если его нет
         if client_ip not in self.requests:
             self.requests[client_ip] = []
         
-        # Удаляем старые запросы (старше окна)
+        # Удаляем старые запросы
         self.requests[client_ip] = [
             req_time for req_time in self.requests[client_ip]
             if current_time - req_time < self.window_seconds
@@ -42,10 +41,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         
         # Проверяем лимит
         if len(self.requests[client_ip]) >= self.max_requests:
-            return Response(
-                content="Слишком много запросов. Попробуйте позже.",
-                status_code=429
-            )
+            return Response(content="Слишком много запросов. Попробуйте позже.", status_code=429)
         
         # Добавляем текущий запрос
         self.requests[client_ip].append(current_time)
@@ -55,9 +51,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return response
 
 
-# Security Headers (защита от атак)
+# Middleware для заголовков безопасности
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request, call_next):
         response = await call_next(request)
         
         # Защита от clickjacking
@@ -67,7 +63,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         
-        # Content Security Policy (базовая)
+        # Content Security Policy
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' https://unpkg.com; "
@@ -83,8 +79,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Проверяем безопасность конфигурации при старте
+async def lifespan(app):
+    # Проверяем безопасность при старте
     from utils.owasp_protection import check_secure_config
     
     warnings = check_secure_config()
@@ -94,33 +90,37 @@ async def lifespan(app: FastAPI):
             print(f"   - {warning}")
         print()
     
+    # Создаем таблицы в БД
     Base.metadata.create_all(bind=engine)
     apply_schema_patches()
     ensure_seed()
     yield
 
 
+# Создаем приложение
 app = FastAPI(title="Цветашки Крым", lifespan=lifespan)
 
-# Добавляем middleware для безопасности
+# Добавляем middleware
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RateLimitMiddleware, max_requests=100, window_seconds=60)
-
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.getenv("SESSION_SECRET", "change-me-in-production"),
     session_cookie="tsvetashki_session",
     same_site="lax",
-    max_age=3600,  # Сессия живет 1 час
+    max_age=3600,
 )
 
+# Подключаем статические файлы
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Подключаем роутеры
 app.include_router(pages.router)
 app.include_router(api.router)
 app.include_router(admin.router)
 
 
+# Health check endpoint
 @app.get("/health")
 async def health():
     return {"status": "ok"}

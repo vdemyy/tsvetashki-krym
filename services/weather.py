@@ -1,89 +1,109 @@
-"""Опционально: осадки по OpenWeather (3ч прогноз)."""
-
-from __future__ import annotations
+# Получение погоды через OpenWeather API
 
 import os
-from dataclasses import dataclass
-
 import httpx
 
 OW_KEY = os.getenv("OPENWEATHER_API_KEY", "")
 
 
-@dataclass
 class WeatherHint:
-    message: str | None
-    raw_summary: str | None = None
+    """Подсказка о погоде"""
+    def __init__(self, message, raw_summary=None):
+        self.message = message
+        self.raw_summary = raw_summary
 
 
-@dataclass
 class WeatherDetails:
-    temp_c: float | None = None
-    feels_like_c: float | None = None
-    humidity: int | None = None
-    wind_speed_ms: float | None = None
-    weather_main: str | None = None
-    weather_desc_ru: str | None = None
-    pressure_hpa: int | None = None
-    visibility_km: float | None = None
+    """Детали погоды"""
+    def __init__(self):
+        self.temp_c = None
+        self.feels_like_c = None
+        self.humidity = None
+        self.wind_speed_ms = None
+        self.weather_main = None
+        self.weather_desc_ru = None
+        self.pressure_hpa = None
+        self.visibility_km = None
 
 
-async def rain_hint(lat: float, lon: float, hours_ahead: int = 12) -> WeatherHint:
+async def rain_hint(lat, lon, hours_ahead=12):
+    """Проверяет будут ли осадки в ближайшие часы"""
     if not OW_KEY:
         return WeatherHint(None)
+    
     url = "https://api.openweathermap.org/data/2.5/forecast"
-    params = {"lat": lat, "lon": lon, "appid": OW_KEY, "units": "metric", "lang": "ru"}
+    params = {
+        "lat": lat,
+        "lon": lon,
+        "appid": OW_KEY,
+        "units": "metric",
+        "lang": "ru"
+    }
+    
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             r = await client.get(url, params=params)
             r.raise_for_status()
             data = r.json()
-    except Exception:
+    except:
         return WeatherHint("Погода временно недоступна.")
-
-    items = data.get("list") or []
+    
+    items = data.get("list", [])
     rainy = []
-    for it in items[: max(1, hours_ahead // 3)]:
-        w = (it.get("weather") or [{}])[0]
-        main = (it.get("rain") or {}).get("3h", 0) or 0
-        if w.get("main") in ("Rain", "Drizzle", "Thunderstorm") or main > 0:
-            rainy.append(it.get("dt_txt", ""))
-
+    
+    # Проверяем прогноз на ближайшие часы
+    for item in items[:max(1, hours_ahead // 3)]:
+        weather = item.get("weather", [{}])[0]
+        rain = item.get("rain", {}).get("3h", 0) or 0
+        
+        # Если дождь или гроза
+        if weather.get("main") in ("Rain", "Drizzle", "Thunderstorm") or rain > 0:
+            rainy.append(item.get("dt_txt", ""))
+    
     if not rainy:
         return WeatherHint(None, "без существенных осадков в ближайшие часы")
-
+    
     return WeatherHint(
-        "Возможны осадки в этом районе в ближайшие часы — проверьте прогноз перед выезддом.",
-        ", ".join(rainy[:3]),
+        "Возможны осадки в этом районе в ближайшие часы — проверьте прогноз перед выездом.",
+        ", ".join(rainy[:3])
     )
 
 
-async def get_weather_details(lat: float, lon: float) -> WeatherDetails | None:
-    """Получить текущие детали погоды для точки."""
+async def get_weather_details(lat, lon):
+    """Получает текущую погоду для точки"""
     if not OW_KEY:
         return None
+    
     url = "https://api.openweathermap.org/data/2.5/weather"
-    params = {"lat": lat, "lon": lon, "appid": OW_KEY, "units": "metric", "lang": "ru"}
+    params = {
+        "lat": lat,
+        "lon": lon,
+        "appid": OW_KEY,
+        "units": "metric",
+        "lang": "ru"
+    }
+    
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             r = await client.get(url, params=params)
             r.raise_for_status()
             data = r.json()
-    except Exception:
+    except:
         return None
-
+    
     main = data.get("main", {})
     wind = data.get("wind", {})
-    weather = (data.get("weather") or [{}])[0]
+    weather = data.get("weather", [{}])[0]
     visibility = data.get("visibility", 0)
-
-    return WeatherDetails(
-        temp_c=main.get("temp"),
-        feels_like_c=main.get("feels_like"),
-        humidity=main.get("humidity"),
-        wind_speed_ms=wind.get("speed"),
-        weather_main=weather.get("main"),
-        weather_desc_ru=weather.get("description"),
-        pressure_hpa=main.get("pressure"),
-        visibility_km=visibility / 1000.0 if visibility else None,
-    )
+    
+    details = WeatherDetails()
+    details.temp_c = main.get("temp")
+    details.feels_like_c = main.get("feels_like")
+    details.humidity = main.get("humidity")
+    details.wind_speed_ms = wind.get("speed")
+    details.weather_main = weather.get("main")
+    details.weather_desc_ru = weather.get("description")
+    details.pressure_hpa = main.get("pressure")
+    details.visibility_km = visibility / 1000.0 if visibility else None
+    
+    return details
