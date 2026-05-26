@@ -1,9 +1,7 @@
-from __future__ import annotations
-
 import json
 import os
+import time
 from datetime import date
-from typing import Any
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -13,45 +11,135 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Event, Phenomenon, Place, Subscription, TelegramWatch
-from utils.limiter import limiter
+from utils.logger import log_login_attempt, log_admin_action
+from utils.security import sanitize_string, validate_slug, is_safe_url
+from utils.owasp_protection import (
+    check_user_permission,
+    sanitize_sql_input,
+    validate_business_logic,
+    sanitize_html,
+    generate_csrf_token,
+    verify_csrf_token,
+)
 
-def add_csrf_token(request: Request):
+
+# Функция для добавления CSRF токена в контекст шаблонов
+def add_csrf_token(request):
+    """Добавляет CSRF токен в контекст каждого шаблона"""
     if "csrf_token" not in request.session:
-        import secrets
-        request.session["csrf_token"] = secrets.token_hex(32)
+        request.session["csrf_token"] = generate_csrf_token()
     return {"csrf_token": request.session["csrf_token"]}
+
 
 templates = Jinja2Templates(directory="templates", context_processors=[add_csrf_token])
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "dreamteam")
 
+# Защита от брутфорса (A07 - Authentication Failures)
+login_attempts = {}  # {ip: [timestamp1, timestamp2, ...]}
+MAX_LOGIN_ATTEMPTS = 5
+LOGIN_TIMEOUT = 300  # 5 минут
 
-def _check(request: Request) -> RedirectResponse | None:
+
+def check_login_attempts(ip):
+    """Проверяет не заблокирован ли IP"""
+    current_time = time.time()
+    
+    if ip not in login_attempts:
+        login_attempts[ip] = []
+    
+    # Удаляем старые попытки
+    login_attempts[ip] = [
+        t for t in login_attempts[ip]
+        if current_time - t < LOGIN_TIMEOUT
+    ]
+    
+    # Проверяем количество попыток
+    if len(login_attempts[ip]) >= MAX_LOGIN_ATTEMPTS:
+        return False
+    
+    return True
+
+
+def add_login_attempt(ip):
+    """Добавляет попытку входа"""
+    if ip not in login_attempts:
+        login_attempts[ip] = []
+    login_attempts[ip].append(time.time())
+
+
+def _check(request):
+    """Проверяет авторизацию (A01 - Broken Access Control)"""
     if not request.session.get("admin"):
         return RedirectResponse(url="/admin/login", status_code=303)
     return None
+
+
+def _check_csrf(request, csrf_token=None):
+    """Проверяет CSRF токен (A08 - CSRF Protection)"""
+    session_token = request.session.get("csrf_token", "")
+    
+    # Для GET запросов CSRF не нужен
+    if request.method == "GET":
+        return True
+    
+    # Для POST проверяем токен
+    if not csrf_token:
+        return False
+    
+    return verify_csrf_token(csrf_token, session_token)
 
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_form(request: Request):
     if request.session.get("admin"):
         return RedirectResponse("/admin", status_code=303)
-    return templates.TemplateResponse(
-        request, "admin/login.html", {"title": "Вход"}
-    )
+    return templates.TemplateResponse(request, "admin/login.html", {"title": "Вход"})
 
 
 @router.post("/login")
-@limiter.limit("5/minute")
 async def login_post(request: Request, password: str = Form(...)):
+    # A07 - Защита от брутфорса
+    client_ip = request.client.host
+    
+    if not check_login_attempts(client_ip):
+        log_login_attempt(client_ip, False)
+        return templates.TemplateResponse(
+            request,
+            "admin/login.html",
+            {
+                "title": "Вход",
+                "error": "Слишком много попыток входа. Подождите 5 минут."
+            },
+            status_code=429,
+        )
+    
+    # Проверяем пароль
     if password == ADMIN_PASSWORD:
         request.session["admin"] = True
+        # Очищаем попытки при успешном входе
+        if client_ip in login_attempts:
+            login_attempts[client_ip] = []
+        # A09 - Логируем успешный вход
+        log_login_attempt(client_ip, True)
         return RedirectResponse(url="/admin", status_code=303)
+    
+    # Добавляем неудачную попытку
+    add_login_attempt(client_ip)
+    # A09 - Логируем неудачную попытку
+    log_login_attempt(client_ip, False)
+    
+    # Считаем оставшиеся попытки
+    remaining = MAX_LOGIN_ATTEMPTS - len(login_attempts.get(client_ip, []))
+    
     return templates.TemplateResponse(
         request,
         "admin/login.html",
-        {"title": "Вход", "error": "Неверный пароль"},
+        {
+            "title": "Вход",
+            "error": f"Неверный пароль. Осталось попыток: {remaining}"
+        },
         status_code=401,
     )
 
@@ -67,9 +155,11 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     redir = _check(request)
     if redir:
         return redir
+    
     np = db.scalar(select(func.count()).select_from(Phenomenon)) or 0
     nl = db.scalar(select(func.count()).select_from(Place)) or 0
     ne = db.scalar(select(func.count()).select_from(Event)) or 0
+    
     return templates.TemplateResponse(
         request,
         "admin/dashboard.html",
@@ -79,13 +169,8 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
 
 # --- phenomena ---
 
-
 @router.get("/phenomena", response_class=HTMLResponse)
-async def list_phenomena(
-    request: Request,
-    db: Session = Depends(get_db),
-    sort: str = Query("id", pattern="^(id|name|slug|kind)$"),
-):
+async def list_phenomena(request: Request, db: Session = Depends(get_db), sort: str = Query("id", pattern="^(id|name|slug|kind)$")):
     redir = _check(request)
     if redir:
         return redir
@@ -350,13 +435,14 @@ async def delete_place(request: Request, lid: int, db: Session = Depends(get_db)
 # --- events ---
 
 
-def _parse_json_list(raw: str) -> list[dict[str, Any]] | None:
+def _parse_json_list(raw):
+    """Парсит JSON список из строки"""
     raw = raw.strip()
     if not raw:
         return None
     try:
         data = json.loads(raw)
-    except json.JSONDecodeError:
+    except:
         return None
     if not isinstance(data, list):
         return None
