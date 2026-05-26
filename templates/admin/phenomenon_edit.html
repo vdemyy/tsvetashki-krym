@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1 class="hero__title hero__title--single">{{ title }}</h1>
+  <p class="hero__sub">Управление явлением</p>
+  <div class="hero__links">
+    <a class="pill pill--ghost" href="/admin/phenomena"><i data-lucide="arrow-left" class="pill__ico"></i>Назад</a>
+  </div>
+</section>
+
+<form class="filters" method="post" action="{{ '/admin/phenomena/' ~ row.id ~ '/edit' if row else '/admin/phenomena/new' }}" style="display:block;max-width:640px;margin-top:1.25rem">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+    <label>
+      <span class="filters__lab">Slug (для URL и бота)</span>
+      <input name="slug" required value="{{ row.slug if row else '' }}" placeholder="lavanda-turgenevka" style="font-family:ui-monospace,monospace;font-size:0.85rem">
+    </label>
+    <label>
+      <span class="filters__lab">Тип явления</span>
+      <select name="kind" required>
+        <option value="flowering" {% if row and row.kind == 'flowering' %}selected{% elif not row %}selected{% endif %}>Цветение</option>
+        <option value="visual" {% if row and row.kind == 'visual' %}selected{% endif %}>Визуальное</option>
+        <option value="harvest" {% if row and row.kind == 'harvest' %}selected{% endif %}>Урожай</option>
+        <option value="animals" {% if row and row.kind == 'animals' %}selected{% endif %}>Животные</option>
+        <option value="activity" {% if row and row.kind == 'activity' %}selected{% endif %}>Событие/активность</option>
+      </select>
+    </label>
+  </div>
+  
+  <label>
+    <span class="filters__lab">Название</span>
+    <input name="name" required value="{{ row.name if row else '' }}" placeholder="Например: Лаванда (Тургеневка)">
+  </label>
+  
+  <label>
+    <span class="filters__lab">Категория / теги</span>
+    <input name="category" value="{{ row.category or '' }}" placeholder="цветы · популярное">
+  </label>
+  
+  <label>
+    <span class="filters__lab">Описание</span>
+    <textarea name="description" rows="4" placeholder="Краткое описание явления...">{{ row.description or '' }}</textarea>
+  </label>
+  
+  <label>
+    <span class="filters__lab">Типичный сезон (текст)</span>
+    <input name="typical_season" value="{{ row.typical_season or '' }}" placeholder="Середина июня — начало июля">
+  </label>
+  
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+    <label>
+      <span class="filters__lab">Иконка Lucide (kebab-case)</span>
+      <input name="icon_lucide" value="{{ row.icon_lucide if row and row.icon_lucide else '' }}" placeholder="flower-2" style="font-family:ui-monospace,monospace;font-size:0.85rem">
+    </label>
+    <label>
+      <span class="filters__lab">Эмодзи (опц.)</span>
+      <input name="icon_emoji" value="{{ row.icon_emoji if row else '' }}" placeholder="🌸">
+    </label>
+  </div>
+  
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+    <label>
+      <span class="filters__lab">URL главного фото</span>
+      <input name="main_photo_url" value="{{ row.main_photo_url or '' }}" placeholder="https://...">
+    </label>
+    <label>
+      <span class="filters__lab">Сайт (опц.)</span>
+      <input name="website_url" value="{{ row.website_url or '' }}" placeholder="https://...">
+    </label>
+  </div>
+  
+  <label>
+    <span class="filters__lab">Температура воды °C (для морских явлений)</span>
+    <input name="water_temp_c" value="{{ row.water_temp_c if row and row.water_temp_c is not none else '' }}" placeholder="22">
+  </label>
+  
+  <div style="display:flex;gap:0.5rem;margin-top:1rem">
+    <button class="btn" type="submit">Сохранить</button>
+    <a class="btn btn--ghost" href="/admin/phenomena">Отмена</a>
+  </div>
+</form>
+
+<script>
+if (typeof lucide !== "undefined" && lucide.createIcons) {
+  lucide.createIcons({ attrs: { class: ["lucide", "lucide-icon"] } });
+}
+</script>
+{% endblock %}

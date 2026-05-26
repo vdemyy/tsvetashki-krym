@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% block title %}{{ p.name }}{% endblock %}
+{% block content %}
+
+<article class="phenom-page">
+
+  <!-- Hero header -->
+  <div class="phenom-hero">
+    <div class="phenom-hero__icon">
+      <i data-lucide="{{ lucide_icon }}" class="phenom-hero__ico lucide-icon"></i>
+    </div>
+    <div class="phenom-hero__body">
+      <div class="phenom-hero__meta">
+        {% set kind_ru = {'flowering':'Цветение','visual':'Визуальное','harvest':'Урожай','animals':'Животные','activity':'Событие'}.get(p.kind, p.kind) %}
+        <span class="badge">{{ kind_ru }}</span>
+        {% if p.category %}<span class="phenom-hero__cat">{{ p.category }}</span>{% endif %}
+      </div>
+      <h1 class="phenom-hero__title">{{ p.name }}</h1>
+      <div class="phenom-hero__chips">
+        <button type="button" class="copy-chip" data-copy="{{ p.slug }}" title="Скопировать slug">
+          <span class="copy-chip__icon">📋</span>{{ p.slug }}
+        </button>
+        <span class="copy-chip copy-chip--static">ID {{ p.id }}</span>
+        {% if p.website_url %}
+        <a class="copy-chip" href="{{ p.website_url }}" rel="noopener" target="_blank">🔗 Сайт</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="phenom-grid">
+    <!-- Left column -->
+    <div class="phenom-grid__main">
+
+      {% if p.description %}
+      <section class="phenom-section">
+        <h2 class="phenom-section__h">
+          <i data-lucide="info" class="phenom-section__ico lucide-icon"></i>Описание
+        </h2>
+        <p class="prose">{{ p.description }}</p>
+      </section>
+      {% endif %}
+
+      {% if p.typical_season %}
+      <section class="phenom-section">
+        <h2 class="phenom-section__h">
+          <i data-lucide="calendar-range" class="phenom-section__ico lucide-icon"></i>Типичный сезон
+        </h2>
+        <p class="prose">{{ p.typical_season }}</p>
+      </section>
+      {% endif %}
+
+      {% if p.water_temp_c %}
+      <section class="phenom-section phenom-section--accent">
+        <h2 class="phenom-section__h">
+          <i data-lucide="waves" class="phenom-section__ico lucide-icon"></i>Температура воды
+        </h2>
+        <p class="phenom-temp">{{ "%.1f"|format(p.water_temp_c) }}<span class="phenom-temp__unit">°C</span></p>
+      </section>
+      {% endif %}
+
+      {% if forecast and (forecast.start or forecast.peak or forecast.end) %}
+      <section class="phenom-section phenom-section--forecast">
+        <h2 class="phenom-section__h">
+          <i data-lucide="trending-up" class="phenom-section__ico lucide-icon"></i>Прогноз по истории
+        </h2>
+        <div class="forecast-timeline">
+          {% if forecast.start %}
+          <div class="forecast-step">
+            <div class="forecast-step__dot forecast-step__dot--start"></div>
+            <div class="forecast-step__label">Начало</div>
+            <div class="forecast-step__date">{{ forecast.start }}</div>
+          </div>
+          {% endif %}
+          {% if forecast.peak %}
+          <div class="forecast-step">
+            <div class="forecast-step__dot forecast-step__dot--peak"></div>
+            <div class="forecast-step__label">Пик</div>
+            <div class="forecast-step__date">{{ forecast.peak }}</div>
+          </div>
+          {% endif %}
+          {% if forecast.end %}
+          <div class="forecast-step">
+            <div class="forecast-step__dot forecast-step__dot--end"></div>
+            <div class="forecast-step__label">Конец</div>
+            <div class="forecast-step__date">{{ forecast.end }}</div>
+          </div>
+          {% endif %}
+        </div>
+        <p class="muted" style="font-size:0.82rem;margin-top:0.75rem">
+          На основе {{ forecast.years_used }} лет наблюдений
+          {% if forecast.start_std_days is not none %}
+          · разброс ±{{ "%.0f"|format(forecast.start_std_days) }}–{{ "%.0f"|format(forecast.peak_std_days or 0) }} дней
+          {% endif %}
+        </p>
+      </section>
+      {% endif %}
+
+      {% if phase_history_json %}
+      <section class="phenom-section">
+        <h2 class="phenom-section__h">
+          <i data-lucide="history" class="phenom-section__ico lucide-icon"></i>История по годам
+        </h2>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Год</th><th>Начало</th><th>Пик</th><th>Конец</th></tr></thead>
+            <tbody>
+              {% for row in phase_history_json %}
+              <tr>
+                <td><strong>{{ row.year or row.y }}</strong></td>
+                <td>{{ row.start or row.s }}</td>
+                <td><strong>{{ row.peak or row.p }}</strong></td>
+                <td>{{ row.end or row.e }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {% endif %}
+
+    </div>
+
+    <!-- Right column: events -->
+    <div class="phenom-grid__side">
+
+      <section class="phenom-section">
+        <h2 class="phenom-section__h">
+          <i data-lucide="map-pin" class="phenom-section__ico lucide-icon"></i>Места наблюдения
+        </h2>
+        {% set stmap = {'active':'идёт','soon':'скоро','future':'позже','ended':'завершено'} %}
+        {% if events %}
+        <div class="event-cards">
+          {% for e in events %}
+          <div class="event-card event-card--{{ e.marker_status }}">
+            <div class="event-card__header">
+              <div>
+                <div class="event-card__place">{{ e.place.name }}</div>
+                <div class="event-card__region">
+                  {{ e.place.region or "" }}{% if e.place.subregion %} · {{ e.place.subregion }}{% endif %}
+                </div>
+              </div>
+              <span class="badge badge--{{ e.marker_status }}">{{ stmap.get(e.marker_status, e.marker_status) }}</span>
+            </div>
+            <dl class="event-card__dates">
+              <div><dt>Начало</dt><dd>{{ e.start_date }}</dd></div>
+              <div><dt>Пик</dt><dd>{{ e.peak_date }}</dd></div>
+              <div><dt>Конец</dt><dd>{{ e.end_date }}</dd></div>
+              <div><dt>Сила</dt><dd>{{ e.intensity }}/5</dd></div>
+            </dl>
+            <div class="event-card__footer">
+              <a class="btn btn--small btn--ghost" href="/map">
+                <i data-lucide="map-pinned" class="btn__ico lucide-icon"></i>На карте
+              </a>
+              <div id="ew-{{ e.id }}" class="event-card__weather"
+                   data-lat="{{ e.place.latitude }}" data-lon="{{ e.place.longitude }}">
+                <span class="event-card__weather-loading">…</span>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty">Нет событий для этого явления.</p>
+        {% endif %}
+      </section>
+
+      <!-- Subscribe -->
+      <section class="phenom-section phenom-section--subscribe">
+        <h2 class="phenom-section__h">
+          <i data-lucide="bell" class="phenom-section__ico lucide-icon"></i>Уведомления
+        </h2>
+        <form class="subform" method="post" action="/subscribe">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="phenomenon_id" value="{{ p.id }}">
+          <input type="email" name="email" required placeholder="Ваш email" autocomplete="email">
+          <button type="submit" class="btn">Подписаться</button>
+        </form>
+        <div class="telegram-hint" style="margin-top:0.75rem">
+          <span class="telegram-hint__label">Telegram:</span>
+          <button type="button" class="telegram-cmd" data-copy="/follow {{ p.slug }}">
+            <code>/follow {{ p.slug }}</code>
+            <span class="telegram-cmd__icon">📋</span>
+          </button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+</article>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll("[data-copy]").forEach(function(btn) {
+  btn.addEventListener("click", async function() {
+    var v = btn.getAttribute("data-copy");
+    try {
+      await navigator.clipboard.writeText(String(v));
+      btn.classList.add("copied");
+      setTimeout(function() { btn.classList.remove("copied"); }, 1200);
+    } catch(e) {}
+  });
+});
+
+// Load weather for each event card
+document.querySelectorAll("[id^='ew-']").forEach(function(block) {
+  var lat = block.getAttribute("data-lat");
+  var lon = block.getAttribute("data-lon");
+  if (!lat || !lon) { block.innerHTML = ""; return; }
+  fetch("/api/weather/hint?lat=" + lat + "&lon=" + lon)
+    .then(function(r) { return r.json(); })
+    .then(function(j) {
+      var wd = j.weather_details;
+      if (!wd) { block.innerHTML = ""; return; }
+      var parts = [];
+      if (wd.temp_c != null) parts.push("🌡 " + Math.round(wd.temp_c) + "°C");
+      if (wd.humidity != null) parts.push("💧 " + wd.humidity + "%");
+      if (wd.wind_speed_ms != null) parts.push("💨 " + wd.wind_speed_ms.toFixed(1) + " м/с");
+      if (wd.weather_desc_ru) parts.push(wd.weather_desc_ru);
+      block.innerHTML = parts.length ? '<span class="event-card__weather-text">' + parts.join(" · ") + "</span>" : "";
+    })
+    .catch(function() { block.innerHTML = ""; });
+});
+
+if (typeof lucide !== "undefined" && lucide.createIcons) {
+  lucide.createIcons({ attrs: { class: ["lucide","lucide-icon"] } });
+}
+</script>
+{% endblock %}

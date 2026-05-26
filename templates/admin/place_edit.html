@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1 class="hero__title hero__title--single">{{ title }}</h1>
+  <p class="hero__sub">Управление местом</p>
+  <div class="hero__links">
+    <a class="pill pill--ghost" href="/admin/places"><i data-lucide="arrow-left" class="pill__ico"></i>Назад</a>
+  </div>
+</section>
+
+<form class="filters" method="post" action="{{ '/admin/places/' ~ row.id ~ '/edit' if row else '/admin/places/new' }}" style="display:block;max-width:680px;margin-top:1.25rem">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <label>
+    <span class="filters__lab">Название места</span>
+    <input type="text" name="name" required value="{{ row.name if row else '' }}" placeholder="Например: Тургеневка (лавандовые поля)">
+  </label>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+    <label>
+      <span class="filters__lab">Регион</span>
+      <select name="region" id="region-select">
+        <option value="">— выбрать —</option>
+        <option value="Южный Крым" {% if row and row.region == 'Южный Крым' %}selected{% endif %}>Южный Крым</option>
+        <option value="Восточный Крым" {% if row and row.region == 'Восточный Крым' %}selected{% endif %}>Восточный Крым</option>
+        <option value="Западный Крым" {% if row and row.region == 'Западный Крым' %}selected{% endif %}>Западный Крым</option>
+        <option value="Севастополь" {% if row and row.region == 'Севастополь' %}selected{% endif %}>Севастополь</option>
+        <option value="Симферополь" {% if row and row.region == 'Симферополь' %}selected{% endif %}>Симферополь</option>
+      </select>
+    </label>
+    <label>
+      <span class="filters__lab">Подрегион</span>
+      <select name="subregion" id="subregion-select">
+        <option value="">— выбрать —</option>
+      </select>
+    </label>
+  </div>
+
+  <!-- Координаты + кнопка карты -->
+  <div>
+    <span class="filters__lab">Координаты</span>
+    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:0.6rem;align-items:end">
+      <label style="margin:0">
+        <span class="filters__lab" style="font-size:0.65rem">Широта</span>
+        <input type="text" id="latitude" name="latitude" required value="{{ row.latitude if row else '' }}" placeholder="44.724">
+      </label>
+      <label style="margin:0">
+        <span class="filters__lab" style="font-size:0.65rem">Долгота</span>
+        <input type="text" id="longitude" name="longitude" required value="{{ row.longitude if row else '' }}" placeholder="33.905">
+      </label>
+      <button type="button" id="map-toggle-btn" class="btn btn--ghost btn--small" style="white-space:nowrap" onclick="toggleMapPicker()">
+        🗺 На карте
+      </button>
+    </div>
+  </div>
+
+  <!-- Карта для выбора точки -->
+  <div id="map-picker-wrap" style="display:none">
+    <div id="picker-map" style="height:380px;border-radius:12px;overflow:hidden;border:2px solid var(--accent);box-shadow:0 4px 20px rgba(45,90,61,0.15)"></div>
+    <p class="hint" style="margin-top:0.5rem;color:var(--accent);font-weight:600">
+      📍 Кликните на карте — координаты заполнятся автоматически
+    </p>
+    <div id="picker-coords" style="font-family:ui-monospace,monospace;font-size:0.82rem;color:var(--muted);margin-top:0.25rem"></div>
+  </div>
+
+  <div style="display:flex;gap:0.5rem;margin-top:1rem">
+    <button class="btn" type="submit">Сохранить</button>
+    <a class="btn btn--ghost" href="/admin/places">Отмена</a>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
+<script>
+var regionSubregionMap = {
+  "Южный Крым": ["Ялта","Бахчисарайский район","Бахчисарай","Феодосия","Судак","Алушта"],
+  "Восточный Крым": ["Керченский полуостров","Керчь","Феодосия"],
+  "Западный Крым": ["Евпатория","Черноморский район","Сакский район"],
+  "Севастополь": ["Геройский район","Центр","Балаклавский округ","Нахимовский район"],
+  "Симферополь": ["Симферополь","Симферопольский район"]
+};
+
+var regionSelect = document.getElementById('region-select');
+var subregionSelect = document.getElementById('subregion-select');
+var savedSubregion = '{{ row.subregion if row and row.subregion else "" }}';
+
+function updateSubregions() {
+  var sel = regionSelect.value;
+  subregionSelect.innerHTML = '<option value="">— выбрать —</option>';
+  if (sel && regionSubregionMap[sel]) {
+    regionSubregionMap[sel].forEach(function(sub) {
+      var opt = document.createElement('option');
+      opt.value = sub; opt.textContent = sub;
+      if (sub === savedSubregion) opt.selected = true;
+      subregionSelect.appendChild(opt);
+    });
+  }
+}
+regionSelect.addEventListener('change', updateSubregions);
+document.addEventListener('DOMContentLoaded', updateSubregions);
+
+// ---- Map picker ----
+var pickerMap = null;
+var pickerMarker = null;
+var mapOpen = false;
+
+function toggleMapPicker() {
+  var wrap = document.getElementById('map-picker-wrap');
+  mapOpen = !mapOpen;
+  wrap.style.display = mapOpen ? 'block' : 'none';
+  document.getElementById('map-toggle-btn').textContent = mapOpen ? '✕ Закрыть карту' : '🗺 На карте';
+
+  if (mapOpen && !pickerMap) {
+    // Init map after element is visible
+    setTimeout(function() {
+      var lat = parseFloat(document.getElementById('latitude').value) || 44.95;
+      var lon = parseFloat(document.getElementById('longitude').value) || 34.11;
+      var zoom = (document.getElementById('latitude').value) ? 13 : 8;
+
+      pickerMap = L.map('picker-map').setView([lat, lon], zoom);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+      }).addTo(pickerMap);
+
+      // If coords already set — show marker
+      if (document.getElementById('latitude').value) {
+        pickerMarker = L.marker([lat, lon], { draggable: true }).addTo(pickerMap);
+        pickerMarker.on('dragend', function(e) { setCoords(e.target.getLatLng()); });
+      }
+
+      pickerMap.on('click', function(e) {
+        setCoords(e.latlng);
+        if (pickerMarker) {
+          pickerMarker.setLatLng(e.latlng);
+        } else {
+          pickerMarker = L.marker(e.latlng, { draggable: true }).addTo(pickerMap);
+          pickerMarker.on('dragend', function(ev) { setCoords(ev.target.getLatLng()); });
+        }
+      });
+    }, 50);
+  } else if (mapOpen && pickerMap) {
+    pickerMap.invalidateSize();
+  }
+}
+
+function setCoords(latlng) {
+  var lat = latlng.lat.toFixed(6);
+  var lon = latlng.lng.toFixed(6);
+  document.getElementById('latitude').value = lat;
+  document.getElementById('longitude').value = lon;
+  document.getElementById('picker-coords').textContent = '📍 ' + lat + ', ' + lon;
+}
+
+if (typeof lucide !== "undefined" && lucide.createIcons) {
+  lucide.createIcons({ attrs: { class: ["lucide","lucide-icon"] } });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Админка{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1 class="hero__title">Панель управления</h1>
+  <p class="hero__sub">Управление явлениями, местами и событиями</p>
+  <div class="hero__links">
+    <a class="pill pill--on" href="/admin">Обзор</a>
+    <a class="pill" href="/admin/logout">Выйти</a>
+  </div>
+</section>
+
+<div class="section section--soft" style="margin-bottom:1.5rem">
+  <h3 class="section__h"><i data-lucide="sparkles" class="section__ico"></i>Быстрые действия</h3>
+  <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.75rem">
+    <a class="btn btn--small" href="/admin/phenomena/new">+ Явление</a>
+    <a class="btn btn--small" href="/admin/places/new">+ Место</a>
+    <a class="btn btn--small" href="/admin/events">+ Событие</a>
+    <a class="btn btn--small btn--ghost" href="/admin/events">Все события</a>
+  </div>
+</div>
+
+<div class="cards cards--admin">
+  <article class="card card--admin">
+    <div class="card__admin-header">
+      <div class="card__admin-icon">
+        <i data-lucide="flower-2" class="lucide-icon"></i>
+      </div>
+      <div class="card__admin-body">
+        <h2 class="card__admin-title">Явления</h2>
+        <p class="card__admin-count">{{ n_phenomena }}</p>
+        <p class="card__admin-label">всего записей</p>
+      </div>
+    </div>
+    <a class="btn btn--small btn--full" href="/admin/phenomena">Управлять →</a>
+  </article>
+  
+  <article class="card card--admin">
+    <div class="card__admin-header">
+      <div class="card__admin-icon">
+        <i data-lucide="map-pin" class="lucide-icon"></i>
+      </div>
+      <div class="card__admin-body">
+        <h2 class="card__admin-title">Места</h2>
+        <p class="card__admin-count">{{ n_places }}</p>
+        <p class="card__admin-label">всего записей</p>
+      </div>
+    </div>
+    <a class="btn btn--small btn--full" href="/admin/places">Управлять →</a>
+  </article>
+  
+  <article class="card card--admin">
+    <div class="card__admin-header">
+      <div class="card__admin-icon">
+        <i data-lucide="calendar" class="lucide-icon"></i>
+      </div>
+      <div class="card__admin-body">
+        <h2 class="card__admin-title">События</h2>
+        <p class="card__admin-count">{{ n_events }}</p>
+        <p class="card__admin-label">всего записей</p>
+      </div>
+    </div>
+    <a class="btn btn--small btn--full" href="/admin/events">Управлять →</a>
+  </article>
+</div>
+
+<script>
+if (typeof lucide !== "undefined" && lucide.createIcons) {
+  lucide.createIcons({ attrs: { class: ["lucide", "lucide-icon"] } });
+}
+</script>
+{% endblock %}

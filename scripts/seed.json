@@ -1,0 +1,880 @@
+{
+  "places": [
+    {
+      "name": "Сады у Керчи",
+      "region": "Восточный Крым",
+      "subregion": "Керчь",
+      "latitude": 45.357,
+      "longitude": 36.468
+    },
+    {
+      "name": "Тургеневка (лавандовые поля)",
+      "region": "Южный Крым",
+      "subregion": "Бахчисарайский район",
+      "latitude": 44.724,
+      "longitude": 33.905
+    },
+    {
+      "name": "Никитский ботанический сад",
+      "region": "Южный Крым",
+      "subregion": "Ялта",
+      "latitude": 44.508,
+      "longitude": 34.235
+    },
+    {
+      "name": "Степь у Керчи",
+      "region": "Восточный Крым",
+      "subregion": "Керченский полуостров",
+      "latitude": 45.298,
+      "longitude": 35.772
+    },
+    {
+      "name": "Коктебель (холмы)",
+      "region": "Южный Крым",
+      "subregion": "Феодосия",
+      "latitude": 44.962,
+      "longitude": 35.238
+    },
+    {
+      "name": "Ласпи (тропа и скалы)",
+      "region": "Южный Крым",
+      "subregion": "Балаклавский округ",
+      "latitude": 44.468,
+      "longitude": 33.598
+    },
+    {
+      "name": "Мыс Фиолент",
+      "region": "Севастополь",
+      "subregion": "Геройский район",
+      "latitude": 44.593,
+      "longitude": 33.468
+    },
+    {
+      "name": "Яйла Ай-Петри",
+      "region": "Южный Крым",
+      "subregion": "Ялта",
+      "latitude": 44.452,
+      "longitude": 34.058
+    },
+    {
+      "name": "Севастопольская бухта",
+      "region": "Севастополь",
+      "subregion": "Центр",
+      "latitude": 44.616,
+      "longitude": 33.525
+    },
+    {
+      "name": "Берег у Судакской крепости",
+      "region": "Южный Крым",
+      "subregion": "Судак",
+      "latitude": 44.838,
+      "longitude": 34.973
+    },
+    {
+      "name": "Бахчисарай (Ханский двор)",
+      "region": "Южный Крым",
+      "subregion": "Бахчисарай",
+      "latitude": 44.748,
+      "longitude": 33.876
+    },
+    {
+      "name": "Окрестности Евпатории",
+      "region": "Западный Крым",
+      "subregion": "Евпатория",
+      "latitude": 45.19,
+      "longitude": 33.364
+    },
+    {
+      "name": "Алупка (Воронцовский парк)",
+      "region": "Южный Крым",
+      "subregion": "Ялта",
+      "latitude": 44.419,
+      "longitude": 34.055
+    },
+    {
+      "name": "Форос (смотровые)",
+      "region": "Южный Крым",
+      "subregion": "Ялта",
+      "latitude": 44.392,
+      "longitude": 33.787
+    },
+    {
+      "name": "Бухта Судак",
+      "region": "Южный Крым",
+      "subregion": "Судак",
+      "latitude": 44.845,
+      "longitude": 34.985
+    },
+    {
+      "name": "Чатал-Чауш (ущелье)",
+      "region": "Южный Крым",
+      "subregion": "Бахчисарайский район",
+      "latitude": 44.698,
+      "longitude": 33.812
+    },
+    {
+      "name": "Мыс Капчик",
+      "region": "Восточный Крым",
+      "subregion": "Керченский полуостров",
+      "latitude": 45.032,
+      "longitude": 35.312
+    },
+    {
+      "name": "Тарханкут (мыс)",
+      "region": "Западный Крым",
+      "subregion": "Черноморский район",
+      "latitude": 45.315,
+      "longitude": 32.985
+    },
+    {
+      "name": "Мелас (бухта)",
+      "region": "Восточный Крым",
+      "subregion": "Феодосия",
+      "latitude": 44.912,
+      "longitude": 35.318
+    },
+    {
+      "name": "Водопад Учан-Су",
+      "region": "Южный Крым",
+      "subregion": "Ялта",
+      "latitude": 44.438,
+      "longitude": 34.132
+    },
+    {
+      "name": "Массандра (парки)",
+      "region": "Южный Крым",
+      "subregion": "Ялта",
+      "latitude": 44.485,
+      "longitude": 34.215
+    },
+    {
+      "name": "Гурзуф (Аю-Даг)",
+      "region": "Южный Крым",
+      "subregion": "Ялта",
+      "latitude": 44.618,
+      "longitude": 34.412
+    },
+    {
+      "name": "Кара-Даг (заповедник)",
+      "region": "Восточный Крым",
+      "subregion": "Феодосия",
+      "latitude": 44.872,
+      "longitude": 35.485
+    },
+    {
+      "name": "Салгир (долина)",
+      "region": "Восточный Крым",
+      "subregion": "Симферополь",
+      "latitude": 44.912,
+      "longitude": 34.128
+    },
+    {
+      "name": "Балаклава (бухта)",
+      "region": "Севастополь",
+      "subregion": "Балаклавский округ",
+      "latitude": 44.482,
+      "longitude": 33.612
+    },
+    {
+      "name": "Чатыр-Даг (пещеры)",
+      "region": "Южный Крым",
+      "subregion": "Бахчисарайский район",
+      "latitude": 44.712,
+      "longitude": 34.218
+    },
+    {
+      "name": "Новый Свет (тропа)",
+      "region": "Южный Крым",
+      "subregion": "Судак",
+      "latitude": 44.892,
+      "longitude": 35.112
+    }
+  ],
+  "phenomena": [
+    {
+      "slug": "lavanda-turgenevka",
+      "name": "Лаванда (Тургеневка)",
+      "kind": "flowering",
+      "category": "цветы · популярное",
+      "description": "Фиолетовые поля — один из самых узнаваемых сезонов Южного берега.",
+      "typical_season": "Середина июня — начало июля.",
+      "icon_lucide": "flower-2",
+      "main_photo_url": "",
+      "website_url": "",
+      "water_temp_c": null
+    },
+    {
+      "slug": "sakura-nikitsky",
+      "name": "Сакура и декоративные вишни (НБС)",
+      "kind": "flowering",
+      "category": "деревья",
+      "description": "Цветение в коллекциях Никитского ботанического сада.",
+      "typical_season": "Конец марта — апрель.",
+      "icon_lucide": "tree-deciduous",
+      "main_photo_url": "",
+      "website_url": "https://nikitasad.ru/",
+      "water_temp_c": null
+    },
+    {
+      "slug": "demo-lugovye-travy",
+      "name": "Луговые цветы (весна)",
+      "kind": "flowering",
+      "category": "популярное",
+      "description": "Демо-событие «в разгаре» для весенней ленты.",
+      "typical_season": "Апрель — май.",
+      "icon_lucide": "sprout",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "maki-koktebel",
+      "name": "Маки и степные мотивы",
+      "kind": "flowering",
+      "category": "цветы",
+      "description": "Красные акценты на фоне вулканических холмов.",
+      "typical_season": "Конец апреля — май.",
+      "icon_lucide": "flower-2",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "glycine-alupka",
+      "name": "Глициния (Воронцовский парк)",
+      "kind": "flowering",
+      "category": "лианы",
+      "description": "Каскады глицинии на беседках и стенах парка.",
+      "typical_season": "Май — начало июня.",
+      "icon_lucide": "flower-2",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "piony-nbs",
+      "name": "Пионы (НБС)",
+      "kind": "flowering",
+      "category": "цветы · коллекции",
+      "description": "Пик цветения пионов в коллекционных участках.",
+      "typical_season": "Конец мая — июнь.",
+      "icon_lucide": "flower-2",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "podsnezhniki-laspi",
+      "name": "Подснежники и ранние лесные цветы",
+      "kind": "flowering",
+      "category": "редкое",
+      "description": "Тенистые склоны у моря — ранние лесные эфемероиды.",
+      "typical_season": "Март — апрель.",
+      "icon_lucide": "snowflake",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "zakat-fiorent",
+      "name": "Закаты с «зелёным лучом» (шанс)",
+      "kind": "visual",
+      "category": "небо · оптика",
+      "description": "Ясная морская дымка и горизонт — редкий оптический эффект.",
+      "typical_season": "Тёплые сезоны, ясные вечера.",
+      "icon_lucide": "sunset",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "tuman-more",
+      "name": "Туман и море облаков",
+      "kind": "visual",
+      "category": "пейзаж",
+      "description": "Слоистая дымка над водой и низкая облачность у берега.",
+      "typical_season": "Весна и осень, штилевая погода.",
+      "icon_lucide": "cloud-fog",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "festival-vina-yalta",
+      "name": "Фестиваль вина (пример)",
+      "kind": "activity",
+      "category": "фестивали",
+      "description": "Демо-событие: проверьте даты на официальных сайтах перед поездкой.",
+      "typical_season": "Осень.",
+      "icon_lucide": "grape",
+      "main_photo_url": "",
+      "website_url": "https://yalta.rk.gov.ru/",
+      "water_temp_c": null
+    },
+    {
+      "slug": "cherry-kerch",
+      "name": "Черешня (сады)",
+      "kind": "harvest",
+      "category": "урожай",
+      "description": "Ранние сорта на востоке полуострова — ориентир по сезону.",
+      "typical_season": "Конец мая — июнь.",
+      "icon_lucide": "cherry",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "delfiny-sudak",
+      "name": "Дельфины у берега (шанс)",
+      "kind": "animals",
+      "category": "море",
+      "description": "Спокойное море, утро или вечер — чаще стаи афалин.",
+      "typical_season": "Тёплые месяцы.",
+      "icon_lucide": "waves",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "lavrovoshhok-sevastopol",
+      "name": "Цветение лавровишни",
+      "kind": "flowering",
+      "category": "деревья",
+      "description": "Белые гроздья соцветий в городских садах и на набережных.",
+      "typical_season": "Апрель — май.",
+      "icon_lucide": "leaf",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "tulipany-yevpatoriya",
+      "name": "Тюльпаны (поля и парки)",
+      "kind": "flowering",
+      "category": "цветы",
+      "description": "Весенние посадки и декоративные поля — даты зависят от погоды.",
+      "typical_season": "Апрель.",
+      "icon_lucide": "flower-2",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "halo-ai-petri",
+      "name": "Гало и перистые облака (высокогорье)",
+      "kind": "visual",
+      "category": "небо",
+      "description": "На яйле чаще встречаются перистые перья и оптические кольца.",
+      "typical_season": "Круглый год при ясной атмосфере.",
+      "icon_lucide": "sun",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "yarmarka-meda",
+      "name": "Ярмарка мёда (пример)",
+      "kind": "activity",
+      "category": "ярмарки",
+      "description": "Демо-даты — уточняйте у организаторов.",
+      "typical_season": "Лето.",
+      "icon_lucide": "store",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "rozovyj-sad-massandra",
+      "name": "Розовый сад (Массандра)",
+      "kind": "flowering",
+      "category": "цветы · парки",
+      "description": "Коллекционные розы в Массандровском парке.",
+      "typical_season": "Май — июнь.",
+      "icon_lucide": "flower",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "касатики-тарханкут",
+      "name": "Касатики (ирисы) на Тарханкуте",
+      "kind": "flowering",
+      "category": "цветы · редкое",
+      "description": "Дикорастущие ирисы на степных склонах.",
+      "typical_season": "Май.",
+      "icon_lucide": "flower-2",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "магнолия-гурзуф",
+      "name": "Магнолии (Гурзуф)",
+      "kind": "flowering",
+      "category": "деревья",
+      "description": "Цветение крупнолистных магнолий в парках.",
+      "typical_season": "Апрель — май.",
+      "icon_lucide": "tree-deciduous",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "дикие-пионы-чатал-чауш",
+      "name": "Дикие пионы (ущелья)",
+      "kind": "flowering",
+      "category": "цветы · редкое",
+      "description": "Лесные пионы в тенистых ущельях.",
+      "typical_season": "Май.",
+      "icon_lucide": "flower-2",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "актинии-тарханкут",
+      "name": "Актинии на мелководье (Тарханкут)",
+      "kind": "animals",
+      "category": "море · редкое",
+      "description": "При ясной воде видны на камнях у берега.",
+      "typical_season": "Июнь — сентябрь.",
+      "icon_lucide": "waves",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "аисты-симферополь",
+      "name": "Гнездование аистов",
+      "kind": "animals",
+      "category": "птицы",
+      "description": "Белые аисты возвращаются к гнездовьям.",
+      "typical_season": "Март — август.",
+      "icon_lucide": "bird",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "сирень-симферополь",
+      "name": "Сирень (Симферополь и окрестности)",
+      "kind": "flowering",
+      "category": "кустарники",
+      "description": "Массовое цветение сирени в садах и парках.",
+      "typical_season": "Апрель — май.",
+      "icon_lucide": "leaf",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "ночное-цветение-кара-даг",
+      "name": "Ночное цветение (степные растения)",
+      "kind": "flowering",
+      "category": "редкое",
+      "description": "Некоторые степные растения цветут ночью с ароматом.",
+      "typical_season": "Июнь — июль.",
+      "icon_lucide": "moon",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "дельфины-судак",
+      "name": "Дельфины у Судака",
+      "kind": "animals",
+      "category": "море",
+      "description": "Прохождение стай у побережья.",
+      "typical_season": "Июль — сентябрь.",
+      "icon_lucide": "waves",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "каштан-ялта",
+      "name": "Конский каштан (Ялта)",
+      "kind": "flowering",
+      "category": "деревья",
+      "description": "Цветение каштанов в городских насаждениях.",
+      "typical_season": "Апрель — май.",
+      "icon_lucide": "tree-deciduous",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "кактусы-новы-свет",
+      "name": "Дикорастущие кактусы (Новый Свет)",
+      "kind": "flowering",
+      "category": "редкое",
+      "description": "Уникальные локальные популяции на скалах.",
+      "typical_season": "Июнь.",
+      "icon_lucide": "flower",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "утренний-туман-балклава",
+      "name": "Утренний туман над бухтой (Балаклава)",
+      "kind": "visual",
+      "category": "пейзаж",
+      "description": "Рассветный туман создает мистическую атмосферу.",
+      "typical_season": "Осень — весна.",
+      "icon_lucide": "cloud-fog",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    },
+    {
+      "slug": "сокол-чатыр-даг",
+      "name": "Гнездование соколов (Чатыр-Даг)",
+      "kind": "animals",
+      "category": "птицы · редкое",
+      "description": "Соколы-сапсаны и кречеты на скалах.",
+      "typical_season": "Апрель — июль.",
+      "icon_lucide": "bird",
+      "main_photo_url": "",
+      "website_url": null,
+      "water_temp_c": null
+    }
+  ],
+  "events": [
+    {
+      "phenomenon_slug": "lavanda-turgenevka",
+      "place_name": "Тургеневка (лавандовые поля)",
+      "start_date": "2026-06-14",
+      "peak_date": "2026-06-25",
+      "end_date": "2026-07-06",
+      "intensity": 4,
+      "phase_history": [
+        {
+          "year": 2021,
+          "start": "2021-06-16",
+          "peak": "2021-06-25",
+          "end": "2021-07-07"
+        },
+        {
+          "year": 2022,
+          "start": "2022-06-10",
+          "peak": "2022-06-22",
+          "end": "2022-07-04"
+        },
+        {
+          "year": 2023,
+          "start": "2023-06-12",
+          "peak": "2023-06-24",
+          "end": "2023-07-06"
+        }
+      ],
+      "notes": "Прогноз по трём годам."
+    },
+    {
+      "phenomenon_slug": "sakura-nikitsky",
+      "place_name": "Никитский ботанический сад",
+      "start_date": "2026-03-28",
+      "peak_date": "2026-04-08",
+      "end_date": "2026-04-20",
+      "intensity": 3,
+      "phase_history": [
+        {
+          "year": 2024,
+          "start": "2024-03-30",
+          "peak": "2024-04-06",
+          "end": "2024-04-18"
+        },
+        {
+          "year": 2025,
+          "start": "2025-03-26",
+          "peak": "2025-04-05",
+          "end": "2025-04-17"
+        }
+      ],
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "demo-lugovye-travy",
+      "place_name": "Степь у Керчи",
+      "start_date": "2026-05-01",
+      "peak_date": "2026-05-15",
+      "end_date": "2026-05-28",
+      "intensity": 3,
+      "phase_history": [
+        {
+          "year": 2024,
+          "start": "2024-05-03",
+          "peak": "2024-05-14",
+          "end": "2024-05-27"
+        },
+        {
+          "year": 2025,
+          "start": "2025-04-28",
+          "peak": "2025-05-12",
+          "end": "2025-05-25"
+        }
+      ],
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "maki-koktebel",
+      "place_name": "Коктебель (холмы)",
+      "start_date": "2026-05-05",
+      "peak_date": "2026-05-18",
+      "end_date": "2026-05-30",
+      "intensity": 3,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "glycine-alupka",
+      "place_name": "Алупка (Воронцовский парк)",
+      "start_date": "2026-05-10",
+      "peak_date": "2026-05-22",
+      "end_date": "2026-06-05",
+      "intensity": 3,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "piony-nbs",
+      "place_name": "Никитский ботанический сад",
+      "start_date": "2026-05-20",
+      "peak_date": "2026-06-03",
+      "end_date": "2026-06-18",
+      "intensity": 4,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "podsnezhniki-laspi",
+      "place_name": "Ласпи (тропа и скалы)",
+      "start_date": "2026-03-15",
+      "peak_date": "2026-03-28",
+      "end_date": "2026-04-12",
+      "intensity": 2,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "zakat-fiorent",
+      "place_name": "Мыс Фиолент",
+      "start_date": "2026-05-01",
+      "peak_date": "2026-08-15",
+      "end_date": "2026-09-20",
+      "intensity": 2,
+      "phase_history": null,
+      "notes": "Длинное «окно» для визуального сезона закатов."
+    },
+    {
+      "phenomenon_slug": "tuman-more",
+      "place_name": "Севастопольская бухта",
+      "start_date": "2026-04-01",
+      "peak_date": "2026-05-12",
+      "end_date": "2026-10-01",
+      "intensity": 2,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "festival-vina-yalta",
+      "place_name": "Никитский ботанический сад",
+      "start_date": "2026-09-25",
+      "peak_date": "2026-10-02",
+      "end_date": "2026-10-08",
+      "intensity": 3,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "cherry-kerch",
+      "place_name": "Сады у Керчи",
+      "start_date": "2026-05-25",
+      "peak_date": "2026-06-08",
+      "end_date": "2026-06-25",
+      "intensity": 3,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "delfiny-sudak",
+      "place_name": "Берег у Судакской крепости",
+      "start_date": "2026-05-01",
+      "peak_date": "2026-07-20",
+      "end_date": "2026-09-15",
+      "intensity": 2,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "lavrovoshhok-sevastopol",
+      "place_name": "Севастопольская бухта",
+      "start_date": "2026-04-20",
+      "peak_date": "2026-05-08",
+      "end_date": "2026-05-22",
+      "intensity": 3,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "tulipany-yevpatoriya",
+      "place_name": "Окрестности Евпатории",
+      "start_date": "2026-04-10",
+      "peak_date": "2026-04-22",
+      "end_date": "2026-05-05",
+      "intensity": 3,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "halo-ai-petri",
+      "place_name": "Яйла Ай-Петри",
+      "start_date": "2026-01-01",
+      "peak_date": "2026-06-15",
+      "end_date": "2026-12-31",
+      "intensity": 1,
+      "phase_history": null,
+      "notes": "Условное «всегда возможно» при ясной погоде."
+    },
+    {
+      "phenomenon_slug": "yarmarka-meda",
+      "place_name": "Бахчисарай (Ханский двор)",
+      "start_date": "2026-06-10",
+      "peak_date": "2026-06-14",
+      "end_date": "2026-06-16",
+      "intensity": 2,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "rozovyj-sad-massandra",
+      "place_name": "Массандра (парки)",
+      "start_date": "2026-05-15",
+      "peak_date": "2026-05-28",
+      "end_date": "2026-06-12",
+      "intensity": 4,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "касатики-тарханкут",
+      "place_name": "Тарханкут (мыс)",
+      "start_date": "2026-05-08",
+      "peak_date": "2026-05-18",
+      "end_date": "2026-05-28",
+      "intensity": 3,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "магнолия-гурзуф",
+      "place_name": "Гурзуф (Аю-Даг)",
+      "start_date": "2026-04-15",
+      "peak_date": "2026-04-28",
+      "end_date": "2026-05-12",
+      "intensity": 3,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "дикие-пионы-чатал-чауш",
+      "place_name": "Чатал-Чауш (ущелье)",
+      "start_date": "2026-05-01",
+      "peak_date": "2026-05-12",
+      "end_date": "2026-05-22",
+      "intensity": 2,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "актинии-тарханкут",
+      "place_name": "Тарханкут (мыс)",
+      "start_date": "2026-06-01",
+      "peak_date": "2026-07-20",
+      "end_date": "2026-09-15",
+      "intensity": 2,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "аисты-симферополь",
+      "place_name": "Салгир (долина)",
+      "start_date": "2026-03-15",
+      "peak_date": "2026-05-20",
+      "end_date": "2026-08-25",
+      "intensity": 3,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "сирень-симферополь",
+      "place_name": "Салгир (долина)",
+      "start_date": "2026-04-20",
+      "peak_date": "2026-05-05",
+      "end_date": "2026-05-18",
+      "intensity": 4,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "ночное-цветение-кара-даг",
+      "place_name": "Кара-Даг (заповедник)",
+      "start_date": "2026-06-10",
+      "peak_date": "2026-07-05",
+      "end_date": "2026-07-25",
+      "intensity": 1,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "дельфины-судак",
+      "place_name": "Бухта Судак",
+      "start_date": "2026-07-01",
+      "peak_date": "2026-08-10",
+      "end_date": "2026-09-20",
+      "intensity": 2,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "каштан-ялта",
+      "place_name": "Водопад Учан-Су",
+      "start_date": "2026-04-12",
+      "peak_date": "2026-04-25",
+      "end_date": "2026-05-08",
+      "intensity": 3,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "кактусы-новы-свет",
+      "place_name": "Новый Свет (тропа)",
+      "start_date": "2026-06-05",
+      "peak_date": "2026-06-18",
+      "end_date": "2026-06-28",
+      "intensity": 2,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "утренний-туман-балклава",
+      "place_name": "Балаклава (бухта)",
+      "start_date": "2026-09-01",
+      "peak_date": "2026-10-20",
+      "end_date": "2026-11-30",
+      "intensity": 2,
+      "phase_history": null,
+      "notes": null
+    },
+    {
+      "phenomenon_slug": "сокол-чатыр-даг",
+      "place_name": "Чатыр-Даг (пещеры)",
+      "start_date": "2026-04-01",
+      "peak_date": "2026-05-15",
+      "end_date": "2026-07-20",
+      "intensity": 2,
+      "phase_history": null,
+      "notes": null
+    }
+  ]
+}

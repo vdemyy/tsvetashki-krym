@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% block title %}Лента{% endblock %}
+{% block content %}
+<section class="hero hero--compact">
+  <h1 class="hero__title">{% if filters.extended %}Планирование{% else %}Сейчас и неделя{% endif %}</h1>
+  <p class="hero__sub">{% if filters.extended %}Горизонт до нескольких месяцев.{% else %}События в разгаре или старт в ближайшие 7 дней.{% endif %}</p>
+  <div class="hero__links">
+    <a class="pill {% if not filters.extended %}pill--on{% endif %}" href="/?extended=0">7 дней</a>
+    <a class="pill {% if filters.extended %}pill--on{% endif %}" href="/?extended=1">Шире</a>
+    <a class="pill pill--ghost" href="/map"><i data-lucide="map-pinned" class="pill__ico" aria-hidden="true"></i>Карта</a>
+  </div>
+</section>
+
+<section class="panel">
+  <button type="button" class="filters-toggle" id="filters-toggle">
+    <span>Фильтры</span>
+    <i data-lucide="chevron-down" class="filters-toggle__icon"></i>
+  </button>
+  <form class="filters" id="filters-form" method="get" action="/">
+    <input type="hidden" name="extended" value="{{ 1 if filters.extended else 0 }}">
+    <label class="filters__grow">
+      <span class="filters__lab">Поиск</span>
+      <input type="search" name="q" value="{{ filters.q }}" placeholder="Название, место, slug…" autocomplete="off">
+    </label>
+    <label>
+      <span class="filters__lab">Регион</span>
+      <select name="region" id="feed-region">
+        <option value="">Все</option>
+        {% for r in meta_regions %}
+        <option value="{{ r }}" {% if filters.region == r %}selected{% endif %}>{{ r }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span class="filters__lab">Подрегион</span>
+      <select name="subregion" id="feed-subregion">
+        <option value="">Все</option>
+        {% for s in meta_subregions %}
+        <option value="{{ s }}" {% if filters.subregion == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span class="filters__lab">Тип</span>
+      <select name="kind">
+        <option value="">Все</option>
+        {% for k in meta_kinds %}
+        {% set kind_ru = {'flowering':'Цветение','visual':'Визуальное','harvest':'Урожай','animals':'Животные','activity':'Событие'}.get(k, k) %}
+        <option value="{{ k }}" {% if filters.kind == k %}selected{% endif %}>{{ kind_ru }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span class="filters__lab">Явление</span>
+      <select name="phenomenon_id">
+        <option value="">Все</option>
+        {% for ph in phenomena_options %}
+        <option value="{{ ph.id }}" {% if filters.phenomenon_id == ph.id %}selected{% endif %}>{{ ph.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span class="filters__lab">Месяц</span>
+      <select name="month">
+        <option value="">—</option>
+        {% for m in range(1,13) %}
+        <option value="{{ m }}" {% if filters.month == m %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <span class="filters__lab">Сортировка</span>
+      <select name="sort">
+        <option value="start" {% if filters.sort == "start" %}selected{% endif %}>Начало</option>
+        <option value="peak" {% if filters.sort == "peak" %}selected{% endif %}>Пик</option>
+        <option value="end" {% if filters.sort == "end" %}selected{% endif %}>Конец</option>
+        <option value="place" {% if filters.sort == "place" %}selected{% endif %}>Место</option>
+        <option value="name" {% if filters.sort == "name" %}selected{% endif %}>Название</option>
+      </select>
+    </label>
+    <div class="filters__actions">
+      <button type="submit" class="btn">Показать</button>
+      <a class="btn btn--ghost" href="/">Сброс</a>
+    </div>
+  </form>
+</section>
+
+{% if not events %}
+<p class="empty">Нет событий в этом окне. Попробуйте <a href="/?extended=1">расширенный режим</a> или <a href="/map">карту</a>.</p>
+{% endif %}
+
+<div class="cards">
+  {% set stmap = {'active':'идёт','soon':'скоро','future':'позже','ended':'завершено'} %}
+  {% for e in events %}
+  <article class="card">
+    <div class="card__top">
+      <span class="card__id">
+        <button type="button" class="copy-chip" data-copy="{{ e.phenomenon.slug }}" title="Скопировать slug">
+          <span class="copy-chip__icon">📋</span> {{ e.phenomenon.slug }}
+        </button>
+        <span class="copy-chip copy-chip--static" title="ID события">№{{ e.id }}</span>
+      </span>
+      <span class="badge badge--{{ e.marker_status }}">{{ stmap.get(e.marker_status, e.marker_status) }}</span>
+    </div>
+    <div class="card__title">
+      <span class="card__iconwrap" aria-hidden="true">
+        <i data-lucide="{{ e.phenomenon.icon_lucide }}" class="card__icon lucide-icon"></i>
+      </span>
+      <div class="card__body">
+        <h2 class="card__name"><a href="/p/{{ e.phenomenon.slug }}">{{ e.phenomenon.name }}</a></h2>
+        <p class="card__meta">
+          <i data-lucide="map-pin" class="card__inline-ico" aria-hidden="true"></i>
+          {{ e.place.name }}
+          {% if e.place.region %}<span class="card__meta-sep">·</span>{{ e.place.region }}{% endif %}
+          {% if e.place.subregion %}<span class="card__meta-sep">·</span>{{ e.place.subregion }}{% endif %}
+        </p>
+        {% if e.phenomenon.kind_ru %}
+        <p class="card__kind">{{ e.phenomenon.kind_ru }}</p>
+        {% endif %}
+      </div>
+    </div>
+    <dl class="dates">
+      <div><dt>Начало</dt><dd>{{ e.start_date }}</dd></div>
+      <div><dt>Пик</dt><dd>{{ e.peak_date }}</dd></div>
+      <div><dt>Конец</dt><dd>{{ e.end_date }}</dd></div>
+      <div><dt>Сила</dt><dd>
+        <span class="intensity-bar">
+          {% for i in range(1, 6) %}
+          <span class="intensity-bar__dot {% if i <= e.intensity %}intensity-bar__dot--on{% endif %}"></span>
+          {% endfor %}
+        </span>
+        {{ e.intensity }}/5
+      </dd></div>
+    </dl>
+    {% if e.timers %}
+    <ul class="timers">
+      {% for t in e.timers %}
+      <li>{% if t.days is not none %}<strong>{{ t.days }} дн.</strong> — {% endif %}{{ t.label }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    <form class="subform" method="post" action="/subscribe">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="phenomenon_id" value="{{ e.phenomenon.id }}">
+      <input type="email" name="email" required placeholder="Email для уведомлений" autocomplete="email">
+      <button type="submit" class="btn btn--small">Подписаться</button>
+    </form>
+    <div class="telegram-hint">
+      <span class="telegram-hint__label">Telegram:</span>
+      <button type="button" class="telegram-cmd" data-copy="/follow {{ e.phenomenon.slug }}" title="Скопировать команду">
+        <code>/follow {{ e.phenomenon.slug }}</code>
+        <span class="telegram-cmd__icon">📋</span>
+      </button>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Mobile filters toggle
+(function() {
+  const toggle = document.getElementById("filters-toggle");
+  const filters = document.getElementById("filters-form");
+  if (toggle && filters) {
+    toggle.addEventListener("click", () => {
+      toggle.classList.toggle("active");
+      filters.classList.toggle("active");
+    });
+  }
+})();
+
+// Copy chips
+document.querySelectorAll("[data-copy]").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const v = btn.getAttribute("data-copy");
+    try { 
+      await navigator.clipboard.writeText(String(v)); 
+      btn.classList.add("copied"); 
+      setTimeout(() => btn.classList.remove("copied"), 1200); 
+    } catch (_) {}
+  });
+});
+
+// Dynamic subregion filter based on selected region
+(function() {
+  const regionSel = document.getElementById("feed-region");
+  const subregionSel = document.getElementById("feed-subregion");
+  if (!regionSel || !subregionSel) return;
+
+  // Build map from existing options: region -> [subregions]
+  // We fetch from API to get accurate data
+  const allSubregions = Array.from(subregionSel.options)
+    .filter(o => o.value)
+    .map(o => o.value);
+
+  const savedSubregion = subregionSel.value;
+
+  async function loadSubregions(region) {
+    try {
+      const r = await fetch("/api/filters/meta");
+      const data = await r.json();
+      return data.subregions || [];
+    } catch(_) { return allSubregions; }
+  }
+
+  // Region->subregion mapping from API
+  let metaCache = null;
+  async function getMeta() {
+    if (metaCache) return metaCache;
+    try {
+      const r = await fetch("/api/filters/meta");
+      metaCache = await r.json();
+    } catch(_) { metaCache = { subregions: allSubregions }; }
+    return metaCache;
+  }
+
+  // We need per-region subregions — use real API endpoint
+  async function updateSubregions() {
+    const region = regionSel.value;
+    const current = subregionSel.value;
+
+    let subs = [];
+    try {
+      const url = region ? `/api/filters/subregions?region=${encodeURIComponent(region)}` : "/api/filters/subregions";
+      const r = await fetch(url);
+      const data = await r.json();
+      subs = data.subregions || [];
+    } catch(_) {
+      subs = allSubregions;
+    }
+
+    subregionSel.innerHTML = '<option value="">Все</option>';
+    subs.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s;
+      opt.textContent = s;
+      if (s === current || s === savedSubregion) opt.selected = true;
+      subregionSel.appendChild(opt);
+    });
+  }
+
+  regionSel.addEventListener("change", updateSubregions);
+  // Init on load — only update if region is pre-selected
+  if (regionSel.value) updateSubregions();
+})();
+
+if (typeof lucide !== "undefined" && lucide.createIcons) {
+  lucide.createIcons({ attrs: { class: ["lucide", "lucide-icon"] } });
+}
+</script>
+{% endblock %}

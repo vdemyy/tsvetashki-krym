@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вход · Админка</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <main class="main" style="max-width:420px">
+    <h1 class="h1">Админка</h1>
+    {% if error %}
+    <p class="empty" style="color:#8a2f2f">{{ error }}</p>
+    {% endif %}
+    <form method="post" action="/admin/login" class="filters" style="display:block">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label>Пароль
+        <input type="password" name="password" required autocomplete="current-password">
+      </label>
+      <button class="btn" type="submit" style="margin-top:0.75rem;width:100%">Войти</button>
+    </form>
+    <p class="hint">Пароль задаётся переменной окружения <code>ADMIN_PASSWORD</code> (по умолчанию для разработки: <code>dreamteam</code>).</p>
+    <p><a href="/">На сайт</a></p>
+  </main>
+</body>
+</html>

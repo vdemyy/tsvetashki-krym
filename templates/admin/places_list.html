@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Места{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1 class="hero__title">Места</h1>
+  <p class="hero__sub">Управление локациями и координатами</p>
+  <div class="hero__links">
+    <a class="pill pill--on" href="/admin/places">Все места</a>
+    <a class="pill" href="/admin/places/new">+ Добавить</a>
+    <a class="pill pill--ghost" href="/admin"><i data-lucide="arrow-left" class="pill__ico"></i>Назад</a>
+  </div>
+</section>
+
+<div class="section section--soft" style="margin-top:1rem;margin-bottom:1rem">
+  <h3 class="section__h"><i data-lucide="arrow-up-down" class="section__ico"></i>Сортировка</h3>
+  <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.6rem">
+    <a class="btn btn--small {% if sort == 'id' %}btn--primary{% else %}btn--ghost{% endif %}" href="/admin/places?sort=id">ID</a>
+    <a class="btn btn--small {% if sort == 'name' %}btn--primary{% else %}btn--ghost{% endif %}" href="/admin/places?sort=name">Название</a>
+    <a class="btn btn--small {% if sort == 'region' %}btn--primary{% else %}btn--ghost{% endif %}" href="/admin/places?sort=region">Регион</a>
+  </div>
+</div>
+
+<div class="table-wrap" style="margin-top:1.25rem">
+  <table class="table">
+    <thead>
+      <tr><th>ID</th><th>Название</th><th>Регион</th><th>Подрегион</th><th>Координаты</th><th>Действия</th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td style="font-family:ui-monospace,monospace;font-size:0.85rem">#{{ r.id }}</td>
+        <td><strong>{{ r.name }}</strong></td>
+        <td><span class="badge">{{ r.region or '—' }}</span></td>
+        <td><span class="muted">{{ r.subregion or '—' }}</span></td>
+        <td style="font-family:ui-monospace,monospace;font-size:0.8rem">{{ "%.4f"|format(r.latitude) }}, {{ "%.4f"|format(r.longitude) }}</td>
+        <td>
+          <a class="btn btn--small btn--ghost" href="/admin/places/{{ r.id }}/edit">Изменить</a>
+          <form method="post" action="/admin/places/{{ r.id }}/delete" style="display:inline;margin-left:0.35rem" onsubmit="return confirm('Удалить место и связанные события?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn--small btn--danger">Удалить</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+if (typeof lucide !== "undefined" && lucide.createIcons) {
+  lucide.createIcons({ attrs: { class: ["lucide", "lucide-icon"] } });
+}
+</script>
+{% endblock %}
